@@ -640,6 +640,48 @@ func (esi *ElasticsearchIndexer) IndexStats(indices ...string) (map[string]*gabs
 	return mapContainer, nil
 }
 
+func (esi *ElasticsearchIndexer) Rollover(alias, newIndex, maxAge, maxSize string, maxDocs int64, settings map[string]interface{}) (*gabs.Container, error) {
+	service := esi.client.RolloverIndex(alias)
+
+	if esi.options != nil && len(esi.options.Timeout) > 0 {
+		service.MasterTimeout(esi.options.Timeout)
+	}
+
+	if len(newIndex) > 0 {
+		service.NewIndex(newIndex)
+	}
+
+	if len(maxAge) > 0 {
+		service.AddCondition("max_age", maxAge)
+	}
+
+	if len(maxSize) > 0 {
+		service.AddCondition("max_size", maxSize)
+	}
+
+	if maxDocs > int64(0) {
+		service.AddCondition("max_docs", maxSize)
+	}
+
+	if settings != nil {
+		service.Settings(settings)
+	}
+
+	response, err := service.Do(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := json.Marshal(response)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return gabs.ParseJSON(b)
+}
+
 func (esi *ElasticsearchIndexer) columns() []string {
 	return []string{
 		"health",
