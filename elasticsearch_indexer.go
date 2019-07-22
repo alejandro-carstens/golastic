@@ -660,7 +660,7 @@ func (esi *ElasticsearchIndexer) Rollover(alias, newIndex, maxAge, maxSize strin
 	}
 
 	if maxDocs > int64(0) {
-		service.AddCondition("max_docs", maxSize)
+		service.AddCondition("max_docs", maxDocs)
 	}
 
 	if settings != nil {
