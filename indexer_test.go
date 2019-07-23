@@ -62,13 +62,13 @@ func (ex *Example) SetId() *Example {
 func TestCreateExistsDestroyIndex(t *testing.T) {
 	example := new(Example).New()
 
-	elasticsearchIndexer := new(ElasticsearchIndexer)
+	indexer := new(indexer)
 
-	if err := elasticsearchIndexer.InitClient(); err != nil {
+	if err := indexer.Init(); err != nil {
 		t.Error("Expected to client, got ", err)
 	}
 
-	exists, err := elasticsearchIndexer.Exists(example.Index())
+	exists, err := indexer.Exists(example.Index())
 
 	if exists == true {
 		t.Error("Expected index not found got ", exists)
@@ -82,11 +82,11 @@ func TestCreateExistsDestroyIndex(t *testing.T) {
 		t.Error("Expected no errors on map creation got ", err)
 	}
 
-	if err := elasticsearchIndexer.CreateIndex(example.Index(), mappings); err != nil {
+	if err := indexer.CreateIndex(example.Index(), mappings); err != nil {
 		t.Error("Expected index got created got", err)
 	}
 
-	exists, err = elasticsearchIndexer.Exists(example.Index())
+	exists, err = indexer.Exists(example.Index())
 
 	if exists == false {
 		t.Error("Expected index found got ", exists)
@@ -94,7 +94,7 @@ func TestCreateExistsDestroyIndex(t *testing.T) {
 		t.Error("Expected index found got ", err)
 	}
 
-	if err := elasticsearchIndexer.DeleteIndex(example.Index()); err != nil {
+	if err := indexer.DeleteIndex(example.Index()); err != nil {
 		t.Error("Expected index got deleted got", err)
 	}
 }

@@ -15,8 +15,8 @@ const CONCURRENT_BATCH int = 10
 const LIMIT int = 10000
 
 type ElasticsearchBuilder struct {
-	Builder
-	ElasticsearchIndexer
+	queryBuilder
+	indexer
 	searchService *elastic.SearchService
 }
 
@@ -40,7 +40,7 @@ func (esb *ElasticsearchBuilder) New(model ElasticModelable, client *elastic.Cli
 		return esb, nil
 	}
 
-	return esb, esb.InitClient()
+	return esb, esb.Init()
 }
 
 // Find retrieves an instance of a model for the specified Id from the corresponding elasticsearch index
@@ -48,7 +48,7 @@ func (esb *ElasticsearchBuilder) Find(id string, model ElasticModelable) error {
 	ctx := context.Background()
 
 	response, err := esb.client.Get().
-		Index(esb.model.Index()).
+		Index(model.Index()).
 		Id(id).
 		Do(ctx)
 

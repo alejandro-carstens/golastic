@@ -5,7 +5,7 @@ import "testing"
 func TestWheres(t *testing.T) {
 	example := new(Example).New()
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.Where("Description", "=", "value1").
 		Where("Description", "<>", "value2").
@@ -18,7 +18,7 @@ func TestWheres(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Where("SubjectId", "!=", 0)
 
@@ -26,7 +26,7 @@ func TestWheres(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Where("SubjectId", ">", "value1")
 
@@ -34,7 +34,7 @@ func TestWheres(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Where("SubjectId", "<", "value1")
 
@@ -42,7 +42,7 @@ func TestWheres(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Where("SubjectId", ">=", "value1")
 
@@ -50,7 +50,7 @@ func TestWheres(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Where("SubjectId", "<=", "value1")
 
@@ -62,7 +62,7 @@ func TestWheres(t *testing.T) {
 func TestFilters(t *testing.T) {
 	example := new(Example).New()
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.Filter("Description", "=", "value1").
 		Filter("SubjectId", ">", 1).
@@ -74,7 +74,7 @@ func TestFilters(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Filter("SubjectId", "<>", 0)
 
@@ -82,7 +82,7 @@ func TestFilters(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Filter("SubjectId", ">", "value1")
 
@@ -90,7 +90,7 @@ func TestFilters(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Filter("SubjectId", "<", "value1")
 
@@ -98,7 +98,7 @@ func TestFilters(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Filter("SubjectId", ">=", "value1")
 
@@ -106,7 +106,7 @@ func TestFilters(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Filter("SubjectId", "<=", "value1")
 
@@ -118,7 +118,7 @@ func TestFilters(t *testing.T) {
 func TestMatches(t *testing.T) {
 	example := new(Example).New()
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.Match("Description", "=", "value1").
 		Match("Description", "<>", "value2")
@@ -127,7 +127,7 @@ func TestMatches(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Match("SubjectId", "!=", 0)
 
@@ -135,7 +135,7 @@ func TestMatches(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Match("SubjectId", "<", 1)
 
@@ -143,7 +143,7 @@ func TestMatches(t *testing.T) {
 		t.Error("Expected errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Match("SubjectId", ">", 1)
 
@@ -158,7 +158,7 @@ func TestWhereIn(t *testing.T) {
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.WhereIn("Description", descriptions).
 		WhereIn("SubjectId", subjectIds)
@@ -167,7 +167,7 @@ func TestWhereIn(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.WhereIn("FakeDescription", descriptions)
 
@@ -182,7 +182,7 @@ func TestFilterIn(t *testing.T) {
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.FilterIn("Description", descriptions).
 		FilterIn("SubjectId", subjectIds)
@@ -191,7 +191,7 @@ func TestFilterIn(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.FilterIn("FakeDescription", descriptions)
 
@@ -206,7 +206,7 @@ func TestMatchIn(t *testing.T) {
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.MatchIn("Description", descriptions).
 		MatchIn("SubjectId", subjectIds)
@@ -215,7 +215,7 @@ func TestMatchIn(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.MatchIn("FakeDescription", descriptions)
 
@@ -230,7 +230,7 @@ func TestWhereNotIn(t *testing.T) {
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.WhereNotIn("Description", descriptions).
 		WhereNotIn("SubjectId", subjectIds)
@@ -239,7 +239,7 @@ func TestWhereNotIn(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.WhereNotIn("FakeDescription", descriptions)
 
@@ -254,7 +254,7 @@ func TestMatchNotIn(t *testing.T) {
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.MatchNotIn("Description", descriptions).
 		MatchNotIn("SubjectId", subjectIds)
@@ -263,7 +263,7 @@ func TestMatchNotIn(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.MatchNotIn("FakeDescription", descriptions)
 
@@ -275,7 +275,7 @@ func TestMatchNotIn(t *testing.T) {
 func TestLimit(t *testing.T) {
 	example := new(Example).New()
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.Limit(10)
 
@@ -283,7 +283,7 @@ func TestLimit(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.Limit(-10)
 
@@ -295,7 +295,7 @@ func TestLimit(t *testing.T) {
 func TestGroupBy(t *testing.T) {
 	example := new(Example).New()
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.GroupBy("Description")
 
@@ -303,7 +303,7 @@ func TestGroupBy(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.GroupBy("FakeDescription")
 
@@ -315,7 +315,7 @@ func TestGroupBy(t *testing.T) {
 func TestOrderBy(t *testing.T) {
 	example := new(Example).New()
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.OrderBy("SubjectId", true)
 
@@ -323,7 +323,7 @@ func TestOrderBy(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.OrderBy("FakeSubjectId", true)
 
@@ -340,7 +340,7 @@ func TestGroupByMany(t *testing.T) {
 		"SubjectId",
 	}
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.GroupBy(fields...)
 
@@ -353,7 +353,7 @@ func TestGroupByMany(t *testing.T) {
 		"FakeSubjectId",
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.GroupBy(fields...)
 
@@ -365,7 +365,7 @@ func TestGroupByMany(t *testing.T) {
 func TestFrom(t *testing.T) {
 	example := new(Example).New()
 
-	builder := new(Builder)
+	builder := new(queryBuilder)
 	builder.SetModel(example)
 	builder.From(10)
 
@@ -373,7 +373,7 @@ func TestFrom(t *testing.T) {
 		t.Error("Expected no errors but got ", got)
 	}
 
-	builder = new(Builder)
+	builder = new(queryBuilder)
 	builder.SetModel(example)
 	builder.From(-10)
 

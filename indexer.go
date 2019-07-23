@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/Jeffail/gabs"
 	elastic "github.com/alejandro-carstens/elasticfork"
@@ -23,23 +26,53 @@ type IndexOptions struct {
 	IndexSettings      map[string]interface{}
 }
 
-type ElasticsearchIndexer struct {
-	ElasticsearchClient
+type indexer struct {
+	client  *elastic.Client
 	options *IndexOptions
 }
 
+// Init initializes an Elastic Client
+func (c *indexer) Init() error {
+	client, err := elastic.NewClient(
+		elastic.SetURL(os.Getenv("ELASTICSEARCH_URI")),
+		elastic.SetSniff(true),
+		elastic.SetHealthcheckInterval(30*time.Second),
+		elastic.SetErrorLog(log.New(os.Stderr, "GOLASTIC ", log.LstdFlags)),
+		elastic.SetInfoLog(log.New(os.Stdout, "", log.LstdFlags)),
+		elastic.SetBasicAuth(os.Getenv("ELASTIC_USERNAME"), os.Getenv("ELASTIC_PASSWORD")),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	c.client = client
+
+	return nil
+}
+
+// SetClient sets an Elastic Client
+func (c *indexer) SetClient(client *elastic.Client) {
+	c.client = client
+}
+
+// Client returns an Elastic Client
+func (c *indexer) Client() *elastic.Client {
+	return c.client
+}
+
 // SetOptions sets the index options for the action to be performed
-func (esi *ElasticsearchIndexer) SetOptions(options *IndexOptions) {
+func (esi *indexer) SetOptions(options *IndexOptions) {
 	esi.options = options
 }
 
 // Exists checks if a given index exists on ElasticSearch
-func (esi *ElasticsearchIndexer) Exists(name string) (bool, error) {
+func (esi *indexer) Exists(name string) (bool, error) {
 	return esi.client.IndexExists(name).Do(context.Background())
 }
 
 // CreateIndex creates and ElasticSearch index
-func (esi *ElasticsearchIndexer) CreateIndex(name string, schema string) error {
+func (esi *indexer) CreateIndex(name string, schema string) error {
 	ctx := context.Background()
 
 	service := esi.client.CreateIndex(name)
@@ -62,7 +95,7 @@ func (esi *ElasticsearchIndexer) CreateIndex(name string, schema string) error {
 }
 
 // DeleteIndex deletes an ElasticSearch Index
-func (esi *ElasticsearchIndexer) DeleteIndex(name string) error {
+func (esi *indexer) DeleteIndex(name string) error {
 	ctx := context.Background()
 
 	service := esi.client.DeleteIndex(name)
@@ -85,12 +118,12 @@ func (esi *ElasticsearchIndexer) DeleteIndex(name string) error {
 }
 
 // ListIndices lists all open inidces on an elsasticsearch cluster
-func (esi *ElasticsearchIndexer) ListIndices() ([]string, error) {
+func (esi *indexer) ListIndices() ([]string, error) {
 	return esi.client.IndexNames()
 }
 
 // ListAllIndices lists all indices on and elasticsearch cluster
-func (esi *ElasticsearchIndexer) ListAllIndices() ([]string, error) {
+func (esi *indexer) ListAllIndices() ([]string, error) {
 	ctx := context.Background()
 
 	catIndicesResponse, err := esi.client.CatIndices().Columns("index").Do(ctx)
@@ -133,7 +166,7 @@ func (esi *ElasticsearchIndexer) ListAllIndices() ([]string, error) {
 }
 
 // Settings gets the index settings for the specified indices
-func (esi *ElasticsearchIndexer) Settings(names ...string) (map[string]*gabs.Container, error) {
+func (esi *indexer) Settings(names ...string) (map[string]*gabs.Container, error) {
 	ctx := context.Background()
 
 	indicesSettings, err := esi.client.IndexGetSettings(names...).Do(ctx)
@@ -163,7 +196,7 @@ func (esi *ElasticsearchIndexer) Settings(names ...string) (map[string]*gabs.Con
 	return settings, nil
 }
 
-func (esi *ElasticsearchIndexer) GetTask(taskId string) (*gabs.Container, error) {
+func (esi *indexer) GetTask(taskId string) (*gabs.Container, error) {
 	taskResponse, err := esi.client.TasksGetTask().TaskId(taskId).Do(context.Background())
 
 	if err != nil {
@@ -179,7 +212,7 @@ func (esi *ElasticsearchIndexer) GetTask(taskId string) (*gabs.Container, error)
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) GetClusterHealth(indices ...string) (*gabs.Container, error) {
+func (esi *indexer) GetClusterHealth(indices ...string) (*gabs.Container, error) {
 	clusterHealthResponse, err := esi.client.ClusterHealth().Index(indices...).Do(context.Background())
 
 	if err != nil {
@@ -195,7 +228,7 @@ func (esi *ElasticsearchIndexer) GetClusterHealth(indices ...string) (*gabs.Cont
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) GetIndices(indices ...string) (*gabs.Container, error) {
+func (esi *indexer) GetIndices(indices ...string) (*gabs.Container, error) {
 	indexGetResponse, err := esi.client.IndexGet(indices...).Do(context.Background())
 
 	if err != nil {
@@ -211,7 +244,7 @@ func (esi *ElasticsearchIndexer) GetIndices(indices ...string) (*gabs.Container,
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) PutSettings(body string, indices ...string) (*gabs.Container, error) {
+func (esi *indexer) PutSettings(body string, indices ...string) (*gabs.Container, error) {
 	service := esi.client.IndexPutSettings(indices...).BodyString(body)
 
 	if esi.options != nil && len(esi.options.Timeout) > 0 {
@@ -233,7 +266,7 @@ func (esi *ElasticsearchIndexer) PutSettings(body string, indices ...string) (*g
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) CreateRepository(repository string, repoType string, verify bool, settings map[string]interface{}) (*gabs.Container, error) {
+func (esi *indexer) CreateRepository(repository string, repoType string, verify bool, settings map[string]interface{}) (*gabs.Container, error) {
 	service := esi.client.SnapshotCreateRepository(repository).Type(repoType).Verify(verify).Settings(settings)
 
 	if esi.options != nil && len(esi.options.Timeout) > 0 {
@@ -255,7 +288,7 @@ func (esi *ElasticsearchIndexer) CreateRepository(repository string, repoType st
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) DeleteRepositories(respositories ...string) (*gabs.Container, error) {
+func (esi *indexer) DeleteRepositories(respositories ...string) (*gabs.Container, error) {
 	service := esi.client.SnapshotDeleteRepository(respositories...)
 
 	if esi.options != nil && len(esi.options.Timeout) > 0 {
@@ -277,7 +310,7 @@ func (esi *ElasticsearchIndexer) DeleteRepositories(respositories ...string) (*g
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) Snapshot(repository string, snapshot string, indices ...string) (*gabs.Container, error) {
+func (esi *indexer) Snapshot(repository string, snapshot string, indices ...string) (*gabs.Container, error) {
 	service := esi.client.SnapshotCreate(repository, snapshot)
 
 	if esi.options != nil {
@@ -322,7 +355,7 @@ func (esi *ElasticsearchIndexer) Snapshot(repository string, snapshot string, in
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) GetSnapshots(respository string, snapshot string) (*gabs.Container, error) {
+func (esi *indexer) GetSnapshots(respository string, snapshot string) (*gabs.Container, error) {
 	service := esi.client.SnapshotGet(respository)
 
 	if snapshot != "*" && len(snapshot) > 0 {
@@ -352,7 +385,7 @@ func (esi *ElasticsearchIndexer) GetSnapshots(respository string, snapshot strin
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) ListSnapshots(repository string) ([]string, error) {
+func (esi *indexer) ListSnapshots(repository string) ([]string, error) {
 	response, err := esi.GetSnapshots(repository, "*")
 
 	if err != nil {
@@ -380,7 +413,7 @@ func (esi *ElasticsearchIndexer) ListSnapshots(repository string) ([]string, err
 	return list, nil
 }
 
-func (esi *ElasticsearchIndexer) DeleteSnapshot(repository string, name string) (*gabs.Container, error) {
+func (esi *indexer) DeleteSnapshot(repository string, name string) (*gabs.Container, error) {
 	response, err := esi.client.SnapshotDelete(repository, name).Do(context.Background())
 
 	if err != nil {
@@ -396,7 +429,7 @@ func (esi *ElasticsearchIndexer) DeleteSnapshot(repository string, name string) 
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) SnapshotRestore(repository string, snapshot string) (*gabs.Container, error) {
+func (esi *indexer) SnapshotRestore(repository string, snapshot string) (*gabs.Container, error) {
 	service := esi.client.SnapshotRestore(repository, snapshot)
 
 	if esi.options != nil && len(esi.options.Timeout) > 0 {
@@ -440,7 +473,7 @@ func (esi *ElasticsearchIndexer) SnapshotRestore(repository string, snapshot str
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) Recovery(indices ...string) (map[string]*gabs.Container, error) {
+func (esi *indexer) Recovery(indices ...string) (map[string]*gabs.Container, error) {
 	response, err := esi.client.IndicesRecovery().Human(true).Indices(indices...).Do(context.Background())
 
 	if err != nil {
@@ -469,7 +502,7 @@ func (esi *ElasticsearchIndexer) Recovery(indices ...string) (map[string]*gabs.C
 }
 
 // Close closes an elasticsearch index
-func (esi *ElasticsearchIndexer) Close(name string) (*gabs.Container, error) {
+func (esi *indexer) Close(name string) (*gabs.Container, error) {
 	service := esi.client.CloseIndex(name)
 
 	if esi.options != nil && len(esi.options.Timeout) > 0 {
@@ -492,7 +525,7 @@ func (esi *ElasticsearchIndexer) Close(name string) (*gabs.Container, error) {
 }
 
 // Close closes an elasticsearch index
-func (esi *ElasticsearchIndexer) Open(name string) (*gabs.Container, error) {
+func (esi *indexer) Open(name string) (*gabs.Container, error) {
 	service := esi.client.OpenIndex(name)
 
 	if esi.options != nil && len(esi.options.Timeout) > 0 {
@@ -515,7 +548,7 @@ func (esi *ElasticsearchIndexer) Open(name string) (*gabs.Container, error) {
 }
 
 // IndexCat retrieves information assocaited to the given index
-func (esi *ElasticsearchIndexer) IndexCat(name string) (*gabs.Container, error) {
+func (esi *indexer) IndexCat(name string) (*gabs.Container, error) {
 	ctx := context.Background()
 
 	catIndicesResponse, err := esi.client.CatIndices().Index(name).Columns(esi.columns()...).Do(ctx)
@@ -534,7 +567,7 @@ func (esi *ElasticsearchIndexer) IndexCat(name string) (*gabs.Container, error) 
 }
 
 // AliasesCat retrives information assocaited to all current index aliases
-func (esi *ElasticsearchIndexer) AliasesCat() ([]*CatAliasesResponse, error) {
+func (esi *indexer) AliasesCat() ([]*CatAliasesResponse, error) {
 	catAliasesResponse, err := esi.client.CatAliases().Columns("*").Do(context.Background())
 
 	if err != nil {
@@ -559,7 +592,7 @@ func (esi *ElasticsearchIndexer) AliasesCat() ([]*CatAliasesResponse, error) {
 }
 
 // AddAlias adds an alias to a given elasticsearch index
-func (esi *ElasticsearchIndexer) AddAlias(indexName string, aliasName string) (*gabs.Container, error) {
+func (esi *indexer) AddAlias(indexName string, aliasName string) (*gabs.Container, error) {
 	aliasResponse, err := elastic.NewAliasService(esi.client).Add(indexName, aliasName).Do(context.Background())
 
 	if err != nil {
@@ -575,7 +608,7 @@ func (esi *ElasticsearchIndexer) AddAlias(indexName string, aliasName string) (*
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) AddAliasByAction(aliasAction *elastic.AliasAddAction) (*gabs.Container, error) {
+func (esi *indexer) AddAliasByAction(aliasAction *elastic.AliasAddAction) (*gabs.Container, error) {
 	aliasResponse, err := elastic.NewAliasService(esi.client).Action(aliasAction).Do(context.Background())
 
 	if err != nil {
@@ -591,7 +624,7 @@ func (esi *ElasticsearchIndexer) AddAliasByAction(aliasAction *elastic.AliasAddA
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) RemoveIndexFromAlias(index string, alias string) (*gabs.Container, error) {
+func (esi *indexer) RemoveIndexFromAlias(index string, alias string) (*gabs.Container, error) {
 	aliasResponse, err := elastic.NewAliasService(esi.client).Remove(index, alias).Do(context.Background())
 
 	if err != nil {
@@ -607,12 +640,12 @@ func (esi *ElasticsearchIndexer) RemoveIndexFromAlias(index string, alias string
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) AliasAddAction(alias string) *elastic.AliasAddAction {
+func (esi *indexer) AliasAddAction(alias string) *elastic.AliasAddAction {
 	return elastic.NewAliasAddAction(alias)
 }
 
 // IndexStats retrieves the statistics for the given indices
-func (esi *ElasticsearchIndexer) IndexStats(indices ...string) (map[string]*gabs.Container, error) {
+func (esi *indexer) IndexStats(indices ...string) (map[string]*gabs.Container, error) {
 	indexStatsResponse, err := esi.client.IndexStats(indices...).Do(context.Background())
 
 	if err != nil {
@@ -640,7 +673,7 @@ func (esi *ElasticsearchIndexer) IndexStats(indices ...string) (map[string]*gabs
 	return mapContainer, nil
 }
 
-func (esi *ElasticsearchIndexer) Rollover(alias, newIndex, maxAge, maxSize string, maxDocs int64, settings map[string]interface{}) (*gabs.Container, error) {
+func (esi *indexer) Rollover(alias, newIndex, maxAge, maxSize string, maxDocs int64, settings map[string]interface{}) (*gabs.Container, error) {
 	service := esi.client.RolloverIndex(alias)
 
 	if esi.options != nil && len(esi.options.Timeout) > 0 {
@@ -682,7 +715,7 @@ func (esi *ElasticsearchIndexer) Rollover(alias, newIndex, maxAge, maxSize strin
 	return gabs.ParseJSON(b)
 }
 
-func (esi *ElasticsearchIndexer) columns() []string {
+func (esi *indexer) columns() []string {
 	return []string{
 		"health",
 		"status",
