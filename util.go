@@ -6,6 +6,12 @@ import (
 	"github.com/araddon/dateparse"
 )
 
+func Connection(context *ConnectionContext) *connection {
+	return &connection{
+		context: context,
+	}
+}
+
 // ToJson encodes json.Marshal to a string
 func ToJson(item interface{}) (string, error) {
 	value, err := json.Marshal(item)

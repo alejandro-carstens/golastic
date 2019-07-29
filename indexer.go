@@ -4,10 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
-	"os"
 	"strings"
-	"time"
 
 	"github.com/Jeffail/gabs"
 	elastic "github.com/alejandro-carstens/elasticfork"
@@ -27,38 +24,8 @@ type IndexOptions struct {
 }
 
 type indexer struct {
-	client  *elastic.Client
 	options *IndexOptions
-}
-
-// Init initializes an Elastic Client
-func (c *indexer) Init() error {
-	client, err := elastic.NewClient(
-		elastic.SetURL(os.Getenv("ELASTICSEARCH_URI")),
-		elastic.SetSniff(true),
-		elastic.SetHealthcheckInterval(30*time.Second),
-		elastic.SetErrorLog(log.New(os.Stderr, "GOLASTIC ", log.LstdFlags)),
-		elastic.SetInfoLog(log.New(os.Stdout, "", log.LstdFlags)),
-		elastic.SetBasicAuth(os.Getenv("ELASTIC_USERNAME"), os.Getenv("ELASTIC_PASSWORD")),
-	)
-
-	if err != nil {
-		return err
-	}
-
-	c.client = client
-
-	return nil
-}
-
-// SetClient sets an Elastic Client
-func (c *indexer) SetClient(client *elastic.Client) {
-	c.client = client
-}
-
-// Client returns an Elastic Client
-func (c *indexer) Client() *elastic.Client {
-	return c.client
+	client  *elastic.Client
 }
 
 // SetOptions sets the index options for the action to be performed

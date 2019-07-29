@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
-	"reflect"
+
+	"github.com/rs/xid"
 
 	"github.com/Jeffail/gabs"
 	elastic "github.com/alejandro-carstens/elasticfork"
@@ -16,41 +17,16 @@ const LIMIT int = 10000
 
 type ElasticsearchBuilder struct {
 	queryBuilder
-	indexer
+	client        *elastic.Client
 	searchService *elastic.SearchService
-}
-
-func NewBuilder(model ElasticModelable, client *elastic.Client) (*ElasticsearchBuilder, error) {
-	return new(ElasticsearchBuilder).New(model, client)
-}
-
-// New creates an instance of ElasticsearchBuilder
-func (esb *ElasticsearchBuilder) New(model ElasticModelable, client *elastic.Client) (*ElasticsearchBuilder, error) {
-	if model == nil {
-		model = NewGolasticModel()
-	}
-
-	if _, err := esb.SetModel(model); err != nil {
-		return nil, err
-	}
-
-	if esb.client != nil {
-		esb.SetClient(client)
-
-		return esb, nil
-	}
-
-	return esb, esb.Init()
+	index         string
 }
 
 // Find retrieves an instance of a model for the specified Id from the corresponding elasticsearch index
-func (esb *ElasticsearchBuilder) Find(id string, model ElasticModelable) error {
+func (esb *ElasticsearchBuilder) Find(id string, model interface{}) error {
 	ctx := context.Background()
 
-	response, err := esb.client.Get().
-		Index(model.Index()).
-		Id(id).
-		Do(ctx)
+	response, err := esb.client.Get().Index(esb.index).Id(id).Do(ctx)
 
 	if err != nil {
 		return err
@@ -70,28 +46,16 @@ func (esb *ElasticsearchBuilder) Find(id string, model ElasticModelable) error {
 }
 
 // Insert inserts one or multiple documents into the corresponding elasticsearch index
-func (esb *ElasticsearchBuilder) Insert(models ...ElasticModelable) (*WriteResponse, error) {
+func (esb *ElasticsearchBuilder) Insert(items ...interface{}) (*WriteResponse, error) {
 	batchClient := esb.client.Bulk()
 
-	for _, model := range models {
-		req := elastic.NewBulkIndexRequest().
-			Index(model.Index()).
-			Id(model.GetId()).
-			OpType("create")
+	for _, item := range items {
+		req := elastic.NewBulkIndexRequest().Index(esb.index).Id(xid.New().String()).OpType("create")
 
-		switch model.IsGolasticModel() {
-		case true:
-			req.Doc(model.Data())
-			break
-		case false:
-			req.Doc(model)
-			break
-		}
-
-		batchClient = batchClient.Add(req)
+		batchClient = batchClient.Add(req.Doc(item))
 	}
 
-	return esb.processBulkRequest(batchClient, len(models))
+	return esb.processBulkRequest(batchClient, len(items))
 }
 
 // Delete deletes one or multiple documents by id from the corresponding elasticsearch index
@@ -99,9 +63,7 @@ func (esb *ElasticsearchBuilder) Delete(ids ...string) (*WriteResponse, error) {
 	batchClient := esb.client.Bulk()
 
 	for _, id := range ids {
-		req := elastic.NewBulkDeleteRequest().
-			Index(esb.model.Index()).
-			Id(id)
+		req := elastic.NewBulkDeleteRequest().Index(esb.index).Id(id)
 
 		batchClient = batchClient.Add(req)
 	}
@@ -110,19 +72,16 @@ func (esb *ElasticsearchBuilder) Delete(ids ...string) (*WriteResponse, error) {
 }
 
 // Update updates one or multiple documents from the corresponding elasticsearch index
-func (esb *ElasticsearchBuilder) Update(models ...ElasticModelable) (*WriteResponse, error) {
+func (esb *ElasticsearchBuilder) Update(items ...Identifiable) (*WriteResponse, error) {
 	batchClient := esb.client.Bulk()
 
-	for _, model := range models {
-		req := elastic.NewBulkUpdateRequest().
-			Index(model.Index()).
-			Id(model.GetId()).
-			Doc(model)
+	for _, item := range items {
+		req := elastic.NewBulkUpdateRequest().Index(esb.index).Id(item.ID())
 
-		batchClient = batchClient.Add(req)
+		batchClient = batchClient.Add(req.Doc(item))
 	}
 
-	return esb.processBulkRequest(batchClient, len(models))
+	return esb.processBulkRequest(batchClient, len(items))
 }
 
 // Aggregate retrieves all the queries aggregations
@@ -133,7 +92,7 @@ func (esb *ElasticsearchBuilder) Aggregate() (map[string]*AggregationResponse, e
 		return nil, err
 	}
 
-	response, err := searchService.Pretty(true).Do(context.Background())
+	response, err := searchService.Do(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -147,7 +106,7 @@ func (esb *ElasticsearchBuilder) Aggregate() (map[string]*AggregationResponse, e
 }
 
 // Get executes the search query and retrieves the results
-func (esb *ElasticsearchBuilder) Get(models interface{}) error {
+func (esb *ElasticsearchBuilder) Get(items interface{}) error {
 	searchService, err := esb.build()
 
 	if err != nil {
@@ -168,17 +127,11 @@ func (esb *ElasticsearchBuilder) Get(models interface{}) error {
 		return err
 	}
 
-	return json.Unmarshal([]byte(results), models)
+	return json.Unmarshal([]byte(results), items)
 }
 
 // Execute executes an ubdate by query
 func (esb *ElasticsearchBuilder) Execute(params map[string]interface{}) (*WriteByQueryResponse, error) {
-	ctx := context.Background()
-
-	if err := esb.validateUpdateParams(params); err != nil {
-		return nil, err
-	}
-
 	query, err := esb.updateByQuery()
 
 	if err != nil {
@@ -187,7 +140,7 @@ func (esb *ElasticsearchBuilder) Execute(params map[string]interface{}) (*WriteB
 
 	script := esb.buildScript(params)
 
-	updateResponse, err := query.Script(script).Refresh("true").Do(ctx)
+	updateResponse, err := query.Script(script).Refresh("true").Do(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -212,10 +165,7 @@ func (esb *ElasticsearchBuilder) Execute(params map[string]interface{}) (*WriteB
 func (esb *ElasticsearchBuilder) Destroy() (*WriteByQueryResponse, error) {
 	ctx := context.Background()
 
-	query := esb.client.
-		DeleteByQuery(esb.model.Index()).
-		ProceedOnVersionConflict().
-		Query(esb.query())
+	query := esb.client.DeleteByQuery(esb.index).ProceedOnVersionConflict().Query(esb.query())
 
 	destroyResponse, err := query.Refresh("true").Do(ctx)
 
@@ -244,17 +194,11 @@ func (esb *ElasticsearchBuilder) Count() (int64, error) {
 		return 0, err
 	}
 
-	ctx := context.Background()
-
-	return esb.client.
-		Count(esb.model.Index()).
-		Query(esb.query()).
-		Pretty(true).
-		Do(ctx)
+	return esb.client.Count(esb.index).Query(esb.query()).Pretty(true).Do(context.Background())
 }
 
 // Cursor paginates based on searching after the last returned sortValues
-func (esb *ElasticsearchBuilder) Cursor(offset int, sortValues []interface{}, models interface{}) ([]interface{}, error) {
+func (esb *ElasticsearchBuilder) Cursor(offset int, sortValues []interface{}, items interface{}) ([]interface{}, error) {
 	if offset == 0 || offset > LIMIT {
 		return nil, errors.New("Offset must be greater than 0 and lesser or equal to 10000")
 	}
@@ -264,6 +208,7 @@ func (esb *ElasticsearchBuilder) Cursor(offset int, sortValues []interface{}, mo
 	}
 
 	esb.Limit(offset)
+
 	searchService, err := esb.build()
 
 	if err != nil {
@@ -274,7 +219,7 @@ func (esb *ElasticsearchBuilder) Cursor(offset int, sortValues []interface{}, mo
 		searchService.SearchAfter(sortValues...)
 	}
 
-	response, err := searchService.Pretty(true).Do(context.Background())
+	response, err := searchService.Do(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -286,7 +231,7 @@ func (esb *ElasticsearchBuilder) Cursor(offset int, sortValues []interface{}, mo
 		return nil, err
 	}
 
-	return sortResponse, json.Unmarshal([]byte(results), models)
+	return sortResponse, json.Unmarshal([]byte(results), items)
 }
 
 func (esb *ElasticsearchBuilder) MinMax(field string, isDateField bool) (*MinMaxResponse, error) {
@@ -307,7 +252,7 @@ func (esb *ElasticsearchBuilder) MinMax(field string, isDateField bool) (*MinMax
 
 	result, err := esb.client.
 		Search().
-		Index(esb.model.Index()).
+		Index(esb.index).
 		Source(rawQuery).
 		Size(0).
 		Do(context.Background())
@@ -523,30 +468,7 @@ func (esb *ElasticsearchBuilder) updateByQuery() (*elastic.UpdateByQueryService,
 		return nil, err
 	}
 
-	return esb.client.
-		UpdateByQuery(esb.model.Index()).
-		ProceedOnVersionConflict().
-		Query(esb.query()), nil
-}
-
-func (esb *ElasticsearchBuilder) validateUpdateParams(params map[string]interface{}) error {
-	if esb.model.IsGolasticModel() {
-		return nil
-	}
-
-	element := reflect.ValueOf(esb.model).Elem()
-
-	for key, value := range params {
-		field := element.FieldByName(key)
-		paramType := reflect.TypeOf(value).Name()
-		fieldType := field.Type().Name()
-
-		if paramType != fieldType {
-			return errors.New("Expected " + fieldType + " for " + key + " but got " + paramType)
-		}
-	}
-
-	return nil
+	return esb.client.UpdateByQuery(esb.index).ProceedOnVersionConflict().Query(esb.query()), nil
 }
 
 func (esb *ElasticsearchBuilder) buildScript(params map[string]interface{}) *elastic.Script {
@@ -560,7 +482,7 @@ func (esb *ElasticsearchBuilder) buildScript(params map[string]interface{}) *ela
 }
 
 func (esb *ElasticsearchBuilder) build() (*elastic.SearchService, error) {
-	query := esb.client.Search().Index(esb.model.Index())
+	query := esb.client.Search().Index(esb.index)
 
 	if err := esb.validateMustClauses(); err != nil {
 		return nil, err
@@ -569,10 +491,6 @@ func (esb *ElasticsearchBuilder) build() (*elastic.SearchService, error) {
 	query = query.Query(esb.query())
 
 	if esb.sorts != nil {
-		if err := esb.validateOrders(); err != nil {
-			return nil, err
-		}
-
 		for _, sort := range esb.sorts {
 			query = query.Sort(sort.GetField(), sort.GetOrder())
 		}
@@ -595,10 +513,6 @@ func (esb *ElasticsearchBuilder) build() (*elastic.SearchService, error) {
 	}
 
 	if esb.groupBy != nil {
-		if err := esb.validateGroupBy(); err != nil {
-			return nil, err
-		}
-
 		query = esb.processGroupBy(esb.groupBy.GetFields(), query)
 	}
 
@@ -630,11 +544,11 @@ func (esb *ElasticsearchBuilder) processWheres(wheres chan []elastic.Query, notW
 	var notTerms []elastic.Query
 
 	for _, whereIn := range esb.whereIns {
-		terms = append(terms, elastic.NewTermsQuery(whereIn.GetField(), whereIn.GetValues()...))
+		terms = append(terms, elastic.NewTermsQuery(whereIn.Field, whereIn.Values...))
 	}
 
 	for _, whereNotIn := range esb.whereNotIns {
-		notTerms = append(notTerms, elastic.NewTermsQuery(whereNotIn.GetField(), whereNotIn.GetValues()...))
+		notTerms = append(notTerms, elastic.NewTermsQuery(whereNotIn.Field, whereNotIn.Values...))
 	}
 
 	for _, where := range esb.wheres {
@@ -674,7 +588,7 @@ func (esb *ElasticsearchBuilder) processFilters(filters chan []elastic.Query) {
 	var terms []elastic.Query
 
 	for _, filterIn := range esb.filterIns {
-		terms = append(terms, elastic.NewTermsQuery(filterIn.GetField(), filterIn.GetValues()...))
+		terms = append(terms, elastic.NewTermsQuery(filterIn.Field, filterIn.Values...))
 	}
 
 	for _, filter := range esb.filters {
@@ -709,14 +623,14 @@ func (esb *ElasticsearchBuilder) processMatches(matches chan []elastic.Query, no
 	var notTerms []elastic.Query
 
 	for _, matchIn := range esb.matchIns {
-		for _, value := range matchIn.GetValues() {
-			terms = append(terms, elastic.NewMatchQuery(matchIn.GetField(), value))
+		for _, value := range matchIn.Values {
+			terms = append(terms, elastic.NewMatchQuery(matchIn.Field, value))
 		}
 	}
 
 	for _, matchNotIn := range esb.matchNotIns {
-		for _, value := range matchNotIn.GetValues() {
-			notTerms = append(notTerms, elastic.NewMatchQuery(matchNotIn.GetField(), value))
+		for _, value := range matchNotIn.Values {
+			notTerms = append(notTerms, elastic.NewMatchQuery(matchNotIn.Field, value))
 		}
 	}
 

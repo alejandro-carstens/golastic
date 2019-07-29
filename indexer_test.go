@@ -1,100 +1,93 @@
 package golastic
 
 import (
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type Example struct {
-	ElasticModel
-	Description string `json:"Description,omitempty"`
-	SubjectId   int    `json:"SubjectId,omitempty"`
+	Id          string `json:"id"`
+	Description string `json:"description,omitempty"`
+	SubjectId   int    `json:"subject_id,omitempty"`
 }
 
-func (ex *Example) New() *Example {
-	ex.Properties()
-	ex.Index()
-	ex.PropertiesMap()
-
-	return ex
+func (e *Example) ID() string {
+	return e.Id
 }
 
-func (ex *Example) Properties() []string {
-	ex.properties = []string{
-		"Id",
-		"Description",
-		"SubjectId",
-	}
-
-	return ex.properties
-}
-
-func (ex *Example) Index() string {
-	ex.index = "example"
-
-	return ex.index
-}
-
-func (ex *Example) PropertiesMap() map[string]interface{} {
-	ex.propertiesMap = map[string]interface{}{
-		"Id": map[string]interface{}{
-			"type":  "keyword",
-			"index": true,
+func indexConfig() string {
+	schema, _ := ToJson(map[string]interface{}{
+		"settings": map[string]int{
+			"number_of_shards":   1,
+			"number_of_replicas": 1,
 		},
-		"Description": map[string]interface{}{
-			"type":  "keyword",
-			"index": true,
+		"mappings": map[string]interface{}{
+			"properties": map[string]interface{}{
+				"id": map[string]interface{}{
+					"type":  "keyword",
+					"index": true,
+				},
+				"description": map[string]interface{}{
+					"type":  "keyword",
+					"index": true,
+				},
+				"subject_id": map[string]interface{}{
+					"type":  "integer",
+					"index": true,
+				},
+			},
 		},
-		"SubjectId": map[string]interface{}{
-			"type":  "integer",
-			"index": true,
-		},
-	}
+	})
 
-	return ex.propertiesMap
+	return schema
 }
 
-func (ex *Example) SetId() *Example {
-	ex.Id = ex.GenerateId()
+func bootConnection() (*connection, error) {
+	connection := Connection(
+		&ConnectionContext{
+			Urls:     []string{os.Getenv("ELASTICSEARCH_URI")},
+			Password: os.Getenv("ELASTICSEARCH_PASSWORD"),
+			Username: os.Getenv("ELASTICSEARCH_USERNAME"),
+		},
+	)
 
-	return ex
+	err := connection.Connect()
+
+	return connection, err
 }
 
 func TestCreateExistsDestroyIndex(t *testing.T) {
-	example := new(Example).New()
-
-	indexer := new(indexer)
-
-	if err := indexer.Init(); err != nil {
-		t.Error("Expected to client, got ", err)
-	}
-
-	exists, err := indexer.Exists(example.Index())
-
-	if exists == true {
-		t.Error("Expected index not found got ", exists)
-	} else if err != nil {
-		t.Error("Expected index not found got ", err)
-	}
-
-	mappings, err := ElasticSearchIndexConfig(1, 0, example.PropertiesMap())
+	connection, err := bootConnection()
 
 	if err != nil {
-		t.Error("Expected no errors on map creation got ", err)
+		t.Error(err)
 	}
 
-	if err := indexer.CreateIndex(example.Index(), mappings); err != nil {
+	indexer := connection.Indexer(nil)
+
+	exists, err := indexer.Exists("example")
+
+	if err != nil {
+		t.Error("Expected no error got ", err)
+	}
+
+	assert.False(t, exists)
+
+	if err := indexer.CreateIndex("example", indexConfig()); err != nil {
 		t.Error("Expected index got created got", err)
 	}
 
-	exists, err = indexer.Exists(example.Index())
+	exists, err = indexer.Exists("example")
 
-	if exists == false {
-		t.Error("Expected index found got ", exists)
-	} else if err != nil {
-		t.Error("Expected index found got ", err)
+	if err != nil {
+		t.Error("Expected no error got ", err)
 	}
 
-	if err := indexer.DeleteIndex(example.Index()); err != nil {
+	assert.True(t, exists)
+
+	if err := indexer.DeleteIndex("example"); err != nil {
 		t.Error("Expected index got deleted got", err)
 	}
 }

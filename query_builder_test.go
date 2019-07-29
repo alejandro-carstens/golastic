@@ -3,10 +3,7 @@ package golastic
 import "testing"
 
 func TestWheres(t *testing.T) {
-	example := new(Example).New()
-
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.Where("Description", "=", "value1").
 		Where("Description", "<>", "value2").
 		Where("SubjectId", ">", 1).
@@ -19,7 +16,6 @@ func TestWheres(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Where("SubjectId", "!=", 0)
 
 	if got := builder.validateWhereClauses(); got == nil {
@@ -27,7 +23,6 @@ func TestWheres(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Where("SubjectId", ">", "value1")
 
 	if got := builder.validateWhereClauses(); got == nil {
@@ -35,7 +30,6 @@ func TestWheres(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Where("SubjectId", "<", "value1")
 
 	if got := builder.validateWhereClauses(); got == nil {
@@ -43,7 +37,6 @@ func TestWheres(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Where("SubjectId", ">=", "value1")
 
 	if got := builder.validateWhereClauses(); got == nil {
@@ -51,7 +44,6 @@ func TestWheres(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Where("SubjectId", "<=", "value1")
 
 	if got := builder.validateWhereClauses(); got == nil {
@@ -60,10 +52,7 @@ func TestWheres(t *testing.T) {
 }
 
 func TestFilters(t *testing.T) {
-	example := new(Example).New()
-
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.Filter("Description", "=", "value1").
 		Filter("SubjectId", ">", 1).
 		Filter("SubjectId", "<", 5).
@@ -75,7 +64,6 @@ func TestFilters(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Filter("SubjectId", "<>", 0)
 
 	if got := builder.validateFilters(); got == nil {
@@ -83,7 +71,6 @@ func TestFilters(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Filter("SubjectId", ">", "value1")
 
 	if got := builder.validateFilters(); got == nil {
@@ -91,7 +78,6 @@ func TestFilters(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Filter("SubjectId", "<", "value1")
 
 	if got := builder.validateFilters(); got == nil {
@@ -99,7 +85,6 @@ func TestFilters(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Filter("SubjectId", ">=", "value1")
 
 	if got := builder.validateFilters(); got == nil {
@@ -107,7 +92,6 @@ func TestFilters(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Filter("SubjectId", "<=", "value1")
 
 	if got := builder.validateFilters(); got == nil {
@@ -116,10 +100,7 @@ func TestFilters(t *testing.T) {
 }
 
 func TestMatches(t *testing.T) {
-	example := new(Example).New()
-
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.Match("Description", "=", "value1").
 		Match("Description", "<>", "value2")
 
@@ -128,7 +109,6 @@ func TestMatches(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Match("SubjectId", "!=", 0)
 
 	if got := builder.validateMatchClauses(); got == nil {
@@ -136,7 +116,6 @@ func TestMatches(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Match("SubjectId", "<", 1)
 
 	if got := builder.validateMatchClauses(); got == nil {
@@ -144,7 +123,6 @@ func TestMatches(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Match("SubjectId", ">", 1)
 
 	if got := builder.validateMatchClauses(); got == nil {
@@ -153,13 +131,10 @@ func TestMatches(t *testing.T) {
 }
 
 func TestWhereIn(t *testing.T) {
-	example := new(Example).New()
-
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.WhereIn("Description", descriptions).
 		WhereIn("SubjectId", subjectIds)
 
@@ -168,7 +143,6 @@ func TestWhereIn(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.WhereIn("FakeDescription", descriptions)
 
 	if got := builder.validateWhereIns(); got == nil {
@@ -177,13 +151,10 @@ func TestWhereIn(t *testing.T) {
 }
 
 func TestFilterIn(t *testing.T) {
-	example := new(Example).New()
-
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.FilterIn("Description", descriptions).
 		FilterIn("SubjectId", subjectIds)
 
@@ -192,7 +163,6 @@ func TestFilterIn(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.FilterIn("FakeDescription", descriptions)
 
 	if got := builder.validateFilterIns(); got == nil {
@@ -201,13 +171,10 @@ func TestFilterIn(t *testing.T) {
 }
 
 func TestMatchIn(t *testing.T) {
-	example := new(Example).New()
-
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.MatchIn("Description", descriptions).
 		MatchIn("SubjectId", subjectIds)
 
@@ -216,7 +183,6 @@ func TestMatchIn(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.MatchIn("FakeDescription", descriptions)
 
 	if got := builder.validateMatchIns(); got == nil {
@@ -225,13 +191,10 @@ func TestMatchIn(t *testing.T) {
 }
 
 func TestWhereNotIn(t *testing.T) {
-	example := new(Example).New()
-
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.WhereNotIn("Description", descriptions).
 		WhereNotIn("SubjectId", subjectIds)
 
@@ -240,7 +203,6 @@ func TestWhereNotIn(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.WhereNotIn("FakeDescription", descriptions)
 
 	if got := builder.validateWhereNotIns(); got == nil {
@@ -249,13 +211,10 @@ func TestWhereNotIn(t *testing.T) {
 }
 
 func TestMatchNotIn(t *testing.T) {
-	example := new(Example).New()
-
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.MatchNotIn("Description", descriptions).
 		MatchNotIn("SubjectId", subjectIds)
 
@@ -264,7 +223,6 @@ func TestMatchNotIn(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.MatchNotIn("FakeDescription", descriptions)
 
 	if got := builder.validateMatchNotIns(); got == nil {
@@ -273,10 +231,7 @@ func TestMatchNotIn(t *testing.T) {
 }
 
 func TestLimit(t *testing.T) {
-	example := new(Example).New()
-
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.Limit(10)
 
 	if got := builder.validateLimit(); got != nil {
@@ -284,7 +239,6 @@ func TestLimit(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.Limit(-10)
 
 	if got := builder.validateLimit(); got == nil {
@@ -292,81 +246,8 @@ func TestLimit(t *testing.T) {
 	}
 }
 
-func TestGroupBy(t *testing.T) {
-	example := new(Example).New()
-
-	builder := new(queryBuilder)
-	builder.SetModel(example)
-	builder.GroupBy("Description")
-
-	if got := builder.validateGroupBy(); got != nil {
-		t.Error("Expected no errors but got ", got)
-	}
-
-	builder = new(queryBuilder)
-	builder.SetModel(example)
-	builder.GroupBy("FakeDescription")
-
-	if got := builder.validateGroupBy(); got == nil {
-		t.Error("Expected no errors but got ", got)
-	}
-}
-
-func TestOrderBy(t *testing.T) {
-	example := new(Example).New()
-
-	builder := new(queryBuilder)
-	builder.SetModel(example)
-	builder.OrderBy("SubjectId", true)
-
-	if got := builder.validateOrders(); got != nil {
-		t.Error("Expected no errors but got ", got)
-	}
-
-	builder = new(queryBuilder)
-	builder.SetModel(example)
-	builder.OrderBy("FakeSubjectId", true)
-
-	if got := builder.validateOrders(); got == nil {
-		t.Error("Expected no errors but got ", got)
-	}
-}
-
-func TestGroupByMany(t *testing.T) {
-	example := new(Example).New()
-
-	var fields = []string{
-		"Description",
-		"SubjectId",
-	}
-
-	builder := new(queryBuilder)
-	builder.SetModel(example)
-	builder.GroupBy(fields...)
-
-	if got := builder.validateGroupBy(); got != nil {
-		t.Error("Expected no errors but got ", got)
-	}
-
-	fields = []string{
-		"FakeDescription",
-		"FakeSubjectId",
-	}
-
-	builder = new(queryBuilder)
-	builder.SetModel(example)
-	builder.GroupBy(fields...)
-
-	if got := builder.validateGroupBy(); got == nil {
-		t.Error("Expected no errors but got ", got)
-	}
-}
-
 func TestFrom(t *testing.T) {
-	example := new(Example).New()
-
 	builder := new(queryBuilder)
-	builder.SetModel(example)
 	builder.From(10)
 
 	if got := builder.validateFrom(); got != nil {
@@ -374,7 +255,6 @@ func TestFrom(t *testing.T) {
 	}
 
 	builder = new(queryBuilder)
-	builder.SetModel(example)
 	builder.From(-10)
 
 	if got := builder.validateFrom(); got == nil {

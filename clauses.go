@@ -2,28 +2,13 @@ package golastic
 
 import "errors"
 
-type WhereIn struct {
-	field  string
-	values []interface{}
+type whereIn struct {
+	Field  string
+	Values []interface{}
 }
 
-func (wi *WhereIn) New(field string, values []interface{}) *WhereIn {
-	wi.field = field
-	wi.values = values
-
-	return wi
-}
-
-func (wi *WhereIn) GetField() string {
-	return wi.field
-}
-
-func (wi *WhereIn) GetValues() []interface{} {
-	return wi.values
-}
-
-func (wi *WhereIn) Validate() error {
-	for _, value := range wi.values {
+func (wi *whereIn) Validate() error {
+	for _, value := range wi.Values {
 		if !IsNumeric(value) && !IsString(value) {
 			return errors.New("The value is not numeric nor a string.")
 		}
@@ -32,30 +17,30 @@ func (wi *WhereIn) Validate() error {
 	return nil
 }
 
-type WhereNotIn struct {
-	WhereIn
+type whereNotIn struct {
+	whereIn
 }
 
-func (wni *WhereNotIn) New(field string, values []interface{}) *WhereNotIn {
-	wni.field = field
-	wni.values = values
+func (wni *whereNotIn) New(field string, values []interface{}) *whereNotIn {
+	wni.Field = field
+	wni.Values = values
 
 	return wni
 }
 
-type Where struct {
+type where struct {
 	field   string
 	operand string
 	value   interface{}
 }
 
-func (w *Where) New(field string, operand string, value interface{}) *Where {
+func (w *where) New(field string, operand string, value interface{}) *where {
 	w.setField(field).setOperand(operand).setValue(value)
 
 	return w
 }
 
-func (w *Where) Validate() error {
+func (w *where) Validate() error {
 	if err := w.validateOperand(w.operand); err != nil {
 		return err
 	}
@@ -73,15 +58,15 @@ func (w *Where) Validate() error {
 	return nil
 }
 
-func (w *Where) IsString() bool {
+func (w *where) IsString() bool {
 	return IsString(w.value)
 }
 
-func (w *Where) IsDate() bool {
+func (w *where) IsDate() bool {
 	return IsDate(w.value)
 }
 
-func (w *Where) validateOperand(operand string) error {
+func (w *where) validateOperand(operand string) error {
 	if operand == "<>" || operand == "=" || operand == ">" || operand == "<" || operand == "<=" || operand == ">=" {
 		return nil
 	}
@@ -89,38 +74,38 @@ func (w *Where) validateOperand(operand string) error {
 	return errors.New("The operand is invalid.")
 }
 
-func (w *Where) setField(field string) *Where {
+func (w *where) setField(field string) *where {
 	w.field = field
 
 	return w
 }
 
-func (w *Where) setOperand(operand string) *Where {
+func (w *where) setOperand(operand string) *where {
 	w.operand = operand
 
 	return w
 }
 
-func (w *Where) setValue(value interface{}) *Where {
+func (w *where) setValue(value interface{}) *where {
 	w.value = value
 
 	return w
 }
 
-func (w *Where) GetField() string {
+func (w *where) GetField() string {
 	return w.field
 }
 
-func (w *Where) GetOperand() string {
+func (w *where) GetOperand() string {
 	return w.operand
 }
 
-func (w *Where) GetValue() interface{} {
+func (w *where) GetValue() interface{} {
 	return w.value
 }
 
 type Filter struct {
-	Where
+	where
 }
 
 func (f *Filter) New(field string, operand string, value interface{}) *Filter {
@@ -156,18 +141,18 @@ func (f *Filter) validateOperand(operand string) error {
 }
 
 type FilterIn struct {
-	WhereIn
+	whereIn
 }
 
 func (fi *FilterIn) New(field string, values []interface{}) *FilterIn {
-	fi.field = field
-	fi.values = values
+	fi.Field = field
+	fi.Values = values
 
 	return fi
 }
 
 type Match struct {
-	Where
+	where
 }
 
 func (m *Match) New(field string, operand string, value interface{}) *Match {
@@ -221,23 +206,23 @@ func (m *Match) validateOperand(operand string) error {
 }
 
 type MatchIn struct {
-	WhereIn
+	whereIn
 }
 
 func (mi *MatchIn) New(field string, values []interface{}) *MatchIn {
-	mi.field = field
-	mi.values = values
+	mi.Field = field
+	mi.Values = values
 
 	return mi
 }
 
 type MatchNotIn struct {
-	WhereIn
+	whereIn
 }
 
 func (mni *MatchNotIn) New(field string, values []interface{}) *MatchNotIn {
-	mni.field = field
-	mni.values = values
+	mni.Field = field
+	mni.Values = values
 
 	return mni
 }

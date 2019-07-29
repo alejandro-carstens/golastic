@@ -1,37 +1,24 @@
 package golastic
 
-import (
-	"errors"
-)
+import "errors"
 
 type queryBuilder struct {
-	wheres      []*Where
+	wheres      []*where
 	matches     []*Match
 	matchIns    []*MatchIn
 	matchNotIns []*MatchNotIn
 	filters     []*Filter
 	filterIns   []*FilterIn
-	whereIns    []*WhereIn
-	whereNotIns []*WhereNotIn
+	whereIns    []*whereIn
+	whereNotIns []*whereNotIn
 	sorts       []*Sort
 	limit       *Limit
 	groupBy     *GroupBy
 	from        *From
-	model       ElasticModelable
 }
 
-func (b *queryBuilder) SetModel(model ElasticModelable) (QueryBuildable, error) {
-	if err := model.Validate(); err != nil {
-		return nil, err
-	}
-
-	b.model = model
-
-	return b, nil
-}
-
-func (b *queryBuilder) Where(field string, operand string, value interface{}) QueryBuildable {
-	where := new(Where).New(field, operand, value)
+func (b *queryBuilder) Where(field string, operand string, value interface{}) *queryBuilder {
+	where := new(where).New(field, operand, value)
 
 	temp := b.wheres
 	b.wheres = append(temp, where)
@@ -39,17 +26,14 @@ func (b *queryBuilder) Where(field string, operand string, value interface{}) Qu
 	return b
 }
 
-func (b *queryBuilder) WhereIn(field string, values []interface{}) QueryBuildable {
-	whereIn := new(WhereIn).New(field, values)
-
-	temp := b.whereIns
-	b.whereIns = append(temp, whereIn)
+func (b *queryBuilder) WhereIn(field string, values []interface{}) *queryBuilder {
+	b.whereIns = append(b.whereIns, &whereIn{Field: field, Values: values})
 
 	return b
 }
 
-func (b *queryBuilder) WhereNotIn(field string, values []interface{}) QueryBuildable {
-	whereNotIn := new(WhereNotIn).New(field, values)
+func (b *queryBuilder) WhereNotIn(field string, values []interface{}) *queryBuilder {
+	whereNotIn := new(whereNotIn).New(field, values)
 
 	temp := b.whereNotIns
 	b.whereNotIns = append(temp, whereNotIn)
@@ -57,7 +41,7 @@ func (b *queryBuilder) WhereNotIn(field string, values []interface{}) QueryBuild
 	return b
 }
 
-func (b *queryBuilder) Filter(field string, operand string, value interface{}) QueryBuildable {
+func (b *queryBuilder) Filter(field string, operand string, value interface{}) *queryBuilder {
 	filter := new(Filter).New(field, operand, value)
 
 	temp := b.filters
@@ -66,7 +50,7 @@ func (b *queryBuilder) Filter(field string, operand string, value interface{}) Q
 	return b
 }
 
-func (b *queryBuilder) FilterIn(field string, values []interface{}) QueryBuildable {
+func (b *queryBuilder) FilterIn(field string, values []interface{}) *queryBuilder {
 	filterIn := new(FilterIn).New(field, values)
 
 	temp := b.filterIns
@@ -75,7 +59,7 @@ func (b *queryBuilder) FilterIn(field string, values []interface{}) QueryBuildab
 	return b
 }
 
-func (b *queryBuilder) Match(field string, operand string, value interface{}) QueryBuildable {
+func (b *queryBuilder) Match(field string, operand string, value interface{}) *queryBuilder {
 	match := new(Match).New(field, operand, value)
 
 	temp := b.matches
@@ -84,7 +68,7 @@ func (b *queryBuilder) Match(field string, operand string, value interface{}) Qu
 	return b
 }
 
-func (b *queryBuilder) MatchIn(field string, values []interface{}) QueryBuildable {
+func (b *queryBuilder) MatchIn(field string, values []interface{}) *queryBuilder {
 	matchIn := new(MatchIn).New(field, values)
 
 	temp := b.matchIns
@@ -93,7 +77,7 @@ func (b *queryBuilder) MatchIn(field string, values []interface{}) QueryBuildabl
 	return b
 }
 
-func (b *queryBuilder) MatchNotIn(field string, values []interface{}) QueryBuildable {
+func (b *queryBuilder) MatchNotIn(field string, values []interface{}) *queryBuilder {
 	matchNotIn := new(MatchNotIn).New(field, values)
 
 	temp := b.matchNotIns
@@ -102,7 +86,7 @@ func (b *queryBuilder) MatchNotIn(field string, values []interface{}) QueryBuild
 	return b
 }
 
-func (b *queryBuilder) OrderBy(field string, asc bool) QueryBuildable {
+func (b *queryBuilder) OrderBy(field string, asc bool) *queryBuilder {
 	sort := new(Sort).New(field, asc)
 
 	temp := b.sorts
@@ -111,19 +95,19 @@ func (b *queryBuilder) OrderBy(field string, asc bool) QueryBuildable {
 	return b
 }
 
-func (b *queryBuilder) Limit(limit int) QueryBuildable {
+func (b *queryBuilder) Limit(limit int) *queryBuilder {
 	b.limit = new(Limit).New(limit)
 
 	return b
 }
 
-func (b *queryBuilder) GroupBy(fields ...string) QueryBuildable {
+func (b *queryBuilder) GroupBy(fields ...string) *queryBuilder {
 	b.groupBy = new(GroupBy).New(fields)
 
 	return b
 }
 
-func (b *queryBuilder) From(from int) QueryBuildable {
+func (b *queryBuilder) From(from int) *queryBuilder {
 	b.from = new(From).New(from)
 
 	return b
@@ -131,10 +115,6 @@ func (b *queryBuilder) From(from int) QueryBuildable {
 
 func (b *queryBuilder) validateWheres() error {
 	for _, where := range b.wheres {
-		if err := b.validateField(where.GetField()); err != nil {
-			return err
-		}
-
 		if err := where.Validate(); err != nil {
 			return err
 		}
@@ -145,10 +125,6 @@ func (b *queryBuilder) validateWheres() error {
 
 func (b *queryBuilder) validateFilters() error {
 	for _, filter := range b.filters {
-		if err := b.validateField(filter.GetField()); err != nil {
-			return err
-		}
-
 		if err := filter.Validate(); err != nil {
 			return err
 		}
@@ -159,10 +135,6 @@ func (b *queryBuilder) validateFilters() error {
 
 func (b *queryBuilder) validateFilterIns() error {
 	for _, filterIn := range b.filterIns {
-		if err := b.validateField(filterIn.GetField()); err != nil {
-			return err
-		}
-
 		if err := filterIn.Validate(); err != nil {
 			return err
 		}
@@ -173,10 +145,6 @@ func (b *queryBuilder) validateFilterIns() error {
 
 func (b *queryBuilder) validateMatches() error {
 	for _, match := range b.matches {
-		if err := b.validateField(match.GetField()); err != nil {
-			return err
-		}
-
 		if err := match.Validate(); err != nil {
 			return err
 		}
@@ -187,10 +155,6 @@ func (b *queryBuilder) validateMatches() error {
 
 func (b *queryBuilder) validateMatchIns() error {
 	for _, matchIn := range b.matchIns {
-		if err := b.validateField(matchIn.GetField()); err != nil {
-			return err
-		}
-
 		if err := matchIn.Validate(); err != nil {
 			return err
 		}
@@ -201,21 +165,7 @@ func (b *queryBuilder) validateMatchIns() error {
 
 func (b *queryBuilder) validateMatchNotIns() error {
 	for _, matchNotIn := range b.matchNotIns {
-		if err := b.validateField(matchNotIn.GetField()); err != nil {
-			return err
-		}
-
 		if err := matchNotIn.Validate(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (b *queryBuilder) validateOrders() error {
-	for _, sort := range b.sorts {
-		if err := b.validateField(sort.GetField()); err != nil {
 			return err
 		}
 	}
@@ -241,21 +191,7 @@ func (b *queryBuilder) validateFrom() error {
 
 func (b *queryBuilder) validateWhereIns() error {
 	for _, whereIn := range b.whereIns {
-		if err := b.validateField(whereIn.GetField()); err != nil {
-			return err
-		}
-
 		if err := whereIn.Validate(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (b *queryBuilder) validateGroupBy() error {
-	for _, field := range b.groupBy.GetFields() {
-		if err := b.validateField(field); err != nil {
 			return err
 		}
 	}
@@ -265,31 +201,9 @@ func (b *queryBuilder) validateGroupBy() error {
 
 func (b *queryBuilder) validateWhereNotIns() error {
 	for _, whereNotIn := range b.whereNotIns {
-		if err := b.validateField(whereNotIn.GetField()); err != nil {
-			return err
-		}
-
 		if err := whereNotIn.Validate(); err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (b *queryBuilder) validateField(field string) error {
-	properties := b.model.Properties()
-	check := false
-
-	for _, property := range properties {
-		if field == property {
-			check = true
-			break
-		}
-	}
-
-	if !check {
-		return errors.New("The field does not match any property.")
 	}
 
 	return nil

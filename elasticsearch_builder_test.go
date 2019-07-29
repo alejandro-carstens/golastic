@@ -9,13 +9,13 @@ import (
 )
 
 func TestInsert(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
 		t.Error("Expected no error got ", err)
 	}
 
-	examples := []ElasticModelable{}
+	examples := []*Example{}
 
 	for i := 1; i < 4; i++ {
 		example := new(Example)
@@ -27,7 +27,7 @@ func TestInsert(t *testing.T) {
 		examples = append(examples, example)
 	}
 
-	res, err := elasticsearchBuilder.Insert(examples...)
+	res, err := connection.Builder("example").Insert(examples)
 
 	if err != nil {
 		t.Error("Expected no error on insert ", err)
@@ -35,34 +35,31 @@ func TestInsert(t *testing.T) {
 
 	assertInsertResponse(t, res)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got ", err)
 	}
 }
 
 func TestUpdate(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
 		t.Error("Expected no error got ", err)
 	}
 
 	example := new(Example)
-
 	example.Id = strconv.Itoa(20)
 	example.Description = "Description 1"
 	example.SubjectId = 1
 
-	_, err = elasticsearchBuilder.Insert(example)
-
-	if err != nil {
+	if _, err = connection.Builder("example").Insert(example); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	example.SubjectId = 2
 	example.Description = "Description 2"
 
-	response, err := elasticsearchBuilder.Update(example)
+	response, err := connection.Builder("example").Update(example)
 
 	if err != nil {
 		t.Error("Expected no error on update:", err)
@@ -80,35 +77,30 @@ func TestUpdate(t *testing.T) {
 	assert.Equal(t, 1, response.First().PrimaryTerm)
 	assert.Equal(t, 200, response.First().Status)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestFind(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
-		t.Error("Expected no error on insert:", err)
+		t.Error("Expected no error got:", err)
 	}
 
 	example := new(Example)
-
 	example.Id = strconv.Itoa(20)
 	example.SubjectId = 1
 	example.Description = "Description 1"
 
-	_, err = elasticsearchBuilder.Insert(example)
-
-	if err != nil {
+	if _, err = connection.Builder("example").Insert(example); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	var response Example
 
-	err = elasticsearchBuilder.Find(example.Id, &response)
-
-	if err != nil {
+	if err = connection.Builder("example").Find(example.Id, &response); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -116,31 +108,28 @@ func TestFind(t *testing.T) {
 	assert.Equal(t, example.SubjectId, response.SubjectId)
 	assert.Equal(t, example.Description, response.Description)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestDelete(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
-		t.Error("Expected no error on insert:", err)
+		t.Error("Expected no error got ", err)
 	}
 
 	example := new(Example)
-
 	example.Id = strconv.Itoa(20)
 	example.Description = "Description 1"
 	example.SubjectId = 1
 
-	_, err = elasticsearchBuilder.Insert(example)
-
-	if err != nil {
+	if _, err = connection.Builder("example").Insert(example); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	response, err := elasticsearchBuilder.Delete(example.Id)
+	response, err := connection.Builder("example").Delete(example.Id)
 
 	if err != nil {
 		t.Error("Expected no error got ", err)
@@ -158,16 +147,16 @@ func TestDelete(t *testing.T) {
 	assert.Equal(t, 1, response.First().PrimaryTerm)
 	assert.Equal(t, 200, response.First().Status)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestUpdateByQuery(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
-		t.Error("Expected no error on insert:", err)
+		t.Error("Expected no error got ", err)
 	}
 
 	example := new(Example)
@@ -176,16 +165,17 @@ func TestUpdateByQuery(t *testing.T) {
 	example.Description = "Description 1"
 	example.SubjectId = 1
 
-	_, err = elasticsearchBuilder.Insert(example)
+	builder := connection.Builder("example")
 
-	if err != nil {
+	if _, err = builder.Insert(example); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	elasticsearchBuilder.Where("Id", "<>", 2)
-	response, err := elasticsearchBuilder.Execute(map[string]interface{}{"SubjectId": 20})
+	builder.Where("Id", "<>", 2)
+
+	response, err := builder.Execute(map[string]interface{}{"SubjectId": 20})
 
 	if err != nil {
 		t.Error("Expected no error got:", err)
@@ -207,16 +197,16 @@ func TestUpdateByQuery(t *testing.T) {
 	assert.Equal(t, 0, response.ThrottledUntilMillis)
 	assert.Equal(t, 0, len(response.Failures))
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestDeleteByQuery(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
-		t.Error("Expected no error on insert:", err)
+		t.Error("Expected no error got ", err)
 	}
 
 	example := new(Example)
@@ -225,16 +215,16 @@ func TestDeleteByQuery(t *testing.T) {
 	example.Description = "Description 1"
 	example.SubjectId = 1
 
-	_, err = elasticsearchBuilder.Insert(example)
+	builder := connection.Builder("example")
 
-	if err != nil {
+	if _, err = builder.Insert(example); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	elasticsearchBuilder.Where("Id", "<>", 2)
-	response, err := elasticsearchBuilder.Destroy()
+	builder.Where("Id", "<>", 2)
+	response, err := builder.Destroy()
 
 	if err != nil {
 		t.Error("Expected no error got:", err)
@@ -256,21 +246,23 @@ func TestDeleteByQuery(t *testing.T) {
 	assert.Equal(t, 0, response.ThrottledUntilMillis)
 	assert.Equal(t, 0, len(response.Failures))
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestGetWheres(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
-		t.Error("Expected no error on insert:", err)
+		t.Error("Expected no error got ", err)
 	}
 
 	models := getModelsToSeed(10)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -281,14 +273,14 @@ func TestGetWheres(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	elasticsearchBuilder.Where("Id", "<>", 3).
+	builder.Where("Id", "<>", 3).
 		Where("SubjectId", "<", 2).
 		WhereNotIn("Description", notInDescriptions).
 		Where("Description", "<>", "Description 5")
 
 	var response []Example
 
-	if err := elasticsearchBuilder.Get(&response); err != nil {
+	if err := builder.Get(&response); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 
@@ -297,21 +289,23 @@ func TestGetWheres(t *testing.T) {
 	assert.Equal(t, 1, response[0].SubjectId)
 	assert.Equal(t, "Description 1", response[0].Description)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestGetFilters(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
-		t.Error("Expected no error on insert:", err)
+		t.Error("Expected no error got ", err)
 	}
 
 	models := getModelsToSeed(10)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -321,13 +315,11 @@ func TestGetFilters(t *testing.T) {
 		1,
 	}
 
-	elasticsearchBuilder.Where("Id", "<>", 3).
-		FilterIn("SubjectId", inSubjectIds).
-		Filter("Id", "<", 2)
+	builder.Where("Id", "<>", 3).FilterIn("SubjectId", inSubjectIds).Filter("Id", "<", 2)
 
 	var response []Example
 
-	if err := elasticsearchBuilder.Get(&response); err != nil {
+	if err := builder.Get(&response); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 
@@ -336,21 +328,23 @@ func TestGetFilters(t *testing.T) {
 	assert.Equal(t, 1, response[0].SubjectId)
 	assert.Equal(t, "Description 1", response[0].Description)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestGetMatches(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
-		t.Error("Expected no error on insert:", err)
+		t.Error("Expected no error got ", err)
 	}
 
 	models := getModelsToSeed(10)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -360,14 +354,14 @@ func TestGetMatches(t *testing.T) {
 		2,
 	}
 
-	elasticsearchBuilder.MatchNotIn("Id", notInIds).
+	builder.MatchNotIn("Id", notInIds).
 		MatchIn("SubjectId", notInIds).
 		Match("Description", "<>", "Description 9").
 		Match("Description", "=", "Description 10")
 
 	var response []Example
 
-	if err := elasticsearchBuilder.Get(&response); err != nil {
+	if err := builder.Get(&response); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 
@@ -376,13 +370,13 @@ func TestGetMatches(t *testing.T) {
 	assert.Equal(t, 2, response[0].SubjectId)
 	assert.Equal(t, "Description 10", response[0].Description)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestGetLimitAndSort(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
 		t.Error("Expected no error on insert:", err)
@@ -390,7 +384,9 @@ func TestGetLimitAndSort(t *testing.T) {
 
 	models := getModelsToSeed(10)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -403,14 +399,11 @@ func TestGetLimitAndSort(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	elasticsearchBuilder.
-		WhereIn("Description", inDescriptions).
-		OrderBy("Id", false).
-		Limit(2)
+	builder.WhereIn("Description", inDescriptions).OrderBy("Id", false).Limit(2)
 
 	var response []Example
 
-	if err := elasticsearchBuilder.Get(&response); err != nil {
+	if err := builder.Get(&response); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 
@@ -422,13 +415,13 @@ func TestGetLimitAndSort(t *testing.T) {
 	assert.Equal(t, 2, response[1].SubjectId)
 	assert.Equal(t, "Description 6", response[1].Description)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestAggregationGroupBy(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
 		t.Error("Expected no error on insert:", err)
@@ -436,7 +429,9 @@ func TestAggregationGroupBy(t *testing.T) {
 
 	models := getModelsToSeed(11)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -450,11 +445,9 @@ func TestAggregationGroupBy(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	elasticsearchBuilder.
-		WhereIn("Description", inDescriptions).
-		GroupBy("SubjectId")
+	builder.WhereIn("Description", inDescriptions).GroupBy("SubjectId")
 
-	response, err := elasticsearchBuilder.Aggregate()
+	response, err := builder.Aggregate()
 
 	if err != nil {
 		t.Error("Expected no error on insert:", err)
@@ -467,13 +460,13 @@ func TestAggregationGroupBy(t *testing.T) {
 	assert.Equal(t, 2, int(aggrecation.Buckets[1].Key.(float64)))
 	assert.Equal(t, 2, aggrecation.Buckets[1].DocCount)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestAggregationGroupByMany(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
 		t.Error("Expected no error on insert:", err)
@@ -481,7 +474,9 @@ func TestAggregationGroupByMany(t *testing.T) {
 
 	models := getModelsToSeed(11)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -495,11 +490,9 @@ func TestAggregationGroupByMany(t *testing.T) {
 
 	fields := []string{"Id", "SubjectId", "Description"}
 
-	elasticsearchBuilder.
-		FilterIn("Description", inDescriptions).
-		GroupBy(fields...)
+	builder.FilterIn("Description", inDescriptions).GroupBy(fields...)
 
-	response, err := elasticsearchBuilder.Aggregate()
+	response, err := builder.Aggregate()
 
 	if err != nil {
 		t.Error("Expected no error on insert:", err)
@@ -520,13 +513,13 @@ func TestAggregationGroupByMany(t *testing.T) {
 	assert.Equal(t, "Description 8", aggregation.Buckets[2].Items["Description"].Buckets[0].Key.(string))
 	assert.Equal(t, 2, int(aggregation.Buckets[2].Items["SubjectId"].Buckets[0].Key.(float64)))
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestCount(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
 		t.Error("Expected no error on insert:", err)
@@ -534,7 +527,9 @@ func TestCount(t *testing.T) {
 
 	models := getModelsToSeed(11)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -546,9 +541,9 @@ func TestCount(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	elasticsearchBuilder.FilterIn("Description", inDescriptions)
+	builder.FilterIn("Description", inDescriptions)
 
-	response, err := elasticsearchBuilder.Count()
+	response, err := builder.Count()
 
 	if err != nil {
 		t.Error("Expected no error got:", err)
@@ -556,13 +551,13 @@ func TestCount(t *testing.T) {
 
 	assert.Equal(t, int64(3), response)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestCursor(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
 		t.Error("Expected no error on insert:", err)
@@ -570,20 +565,19 @@ func TestCursor(t *testing.T) {
 
 	models := getModelsToSeed(15)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	elasticsearchBuilder.
-		Filter("SubjectId", "=", 1).
-		OrderBy("Id", true).
-		OrderBy("Description", true)
+	builder.Filter("SubjectId", "=", 1).OrderBy("Id", true).OrderBy("Description", true)
 
 	var response []Example
 
-	sortValues, err := elasticsearchBuilder.Cursor(2, nil, &response)
+	sortValues, err := builder.Cursor(2, nil, &response)
 
 	if err != nil {
 		t.Error("Expected no error got:", err)
@@ -595,22 +589,20 @@ func TestCursor(t *testing.T) {
 
 	response = []Example{}
 
-	_, err = elasticsearchBuilder.Cursor(1, sortValues, &response)
-
-	if err != nil {
+	if _, err = builder.Cursor(1, sortValues, &response); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 
 	assert.True(t, len(response) == 1)
 	assert.Equal(t, "12", response[0].Id)
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestFromGet(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
 		t.Error("Expected no error on insert:", err)
@@ -618,21 +610,19 @@ func TestFromGet(t *testing.T) {
 
 	models := getModelsToSeed(15)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	elasticsearchBuilder.
-		Filter("SubjectId", "=", 1).
-		OrderBy("Id", true).
-		Limit(5).
-		From(5)
+	builder.Filter("SubjectId", "=", 1).OrderBy("Id", true).Limit(5).From(5)
 
 	response := []Example{}
 
-	if err = elasticsearchBuilder.Get(&response); err != nil {
+	if err = builder.Get(&response); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -643,13 +633,13 @@ func TestFromGet(t *testing.T) {
 	assert.Equal(t, response[3].Id, "4")
 	assert.Equal(t, response[4].Id, "5")
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
 func TestMinMax(t *testing.T) {
-	elasticsearchBuilder, err := InitBuilder()
+	connection, err := initConnection()
 
 	if err != nil {
 		t.Error("Expected no error on insert:", err)
@@ -657,13 +647,15 @@ func TestMinMax(t *testing.T) {
 
 	models := getModelsToSeed(15)
 
-	if _, err = elasticsearchBuilder.Insert(models...); err != nil {
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(models); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	result, err := elasticsearchBuilder.MinMax("SubjectId", false)
+	result, err := builder.MinMax("SubjectId", false)
 
 	if err != nil {
 		t.Error("Expected no error on aggs query:", err)
@@ -672,36 +664,27 @@ func TestMinMax(t *testing.T) {
 	assert.Equal(t, 1, int(result.Min.(float64)))
 	assert.Equal(t, 2, int(result.Max.(float64)))
 
-	if err := TearDownBuilder(elasticsearchBuilder); err != nil {
+	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
 	}
 }
 
-func InitBuilder() (*ElasticsearchBuilder, error) {
-	example := new(Example).New()
-	elasticsearchBuilder, err := new(ElasticsearchBuilder).New(example, nil)
+func initConnection() (*connection, error) {
+	connection, err := bootConnection()
 
 	if err != nil {
 		return nil, err
 	}
 
-	mappings, err := ElasticSearchIndexConfig(1, 0, example.PropertiesMap())
-
-	if err != nil {
+	if err := connection.Indexer(nil).CreateIndex("example", indexConfig()); err != nil {
 		return nil, err
 	}
 
-	if err := elasticsearchBuilder.CreateIndex(example.Index(), mappings); err != nil {
-		return nil, err
-	}
-
-	return elasticsearchBuilder, nil
+	return connection, nil
 }
 
-func TearDownBuilder(elasticsearchBuilder *ElasticsearchBuilder) error {
-	example := new(Example)
-
-	return elasticsearchBuilder.DeleteIndex(example.Index())
+func tearDownBuilder(connection *connection) error {
+	return connection.Indexer(nil).DeleteIndex("example")
 }
 
 func assertInsertResponse(t *testing.T, response *WriteResponse) {
@@ -723,8 +706,8 @@ func assertInsertResponse(t *testing.T, response *WriteResponse) {
 	}
 }
 
-func getModelsToSeed(num int) []ElasticModelable {
-	var models []ElasticModelable
+func getModelsToSeed(num int) []Identifiable {
+	var models []Identifiable
 
 	for i := 0; i < num; i++ {
 		model := new(Example)

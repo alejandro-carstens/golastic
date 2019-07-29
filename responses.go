@@ -1,7 +1,5 @@
 package golastic
 
-import elastic "github.com/alejandro-carstens/elasticfork"
-
 type Shard struct {
 	Total      int `json:"total"`
 	Successful int `json:"successful"`
@@ -102,5 +100,9 @@ type MinMaxResponse struct {
 }
 
 type CatAliasesResponse struct {
-	elastic.CatAliasesResponseRow
+	Alias         string `json:"alias"`
+	Index         string `json:"index"`
+	Filter        string `json:"filter"`
+	RoutingIndex  string `json:"routing.index"`
+	RoutingSearch string `json:"routing.search"`
 }
