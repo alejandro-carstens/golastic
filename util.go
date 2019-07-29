@@ -26,8 +26,8 @@ func FromJson(value string, entity interface{}) (interface{}, error) {
 	return entity, err
 }
 
-// IsNumeric checks if a value is numeric
-func IsNumeric(s interface{}) bool {
+// isNumeric checks if a value is numeric
+func isNumeric(s interface{}) bool {
 	switch s.(type) {
 	case int:
 		return true
@@ -42,8 +42,8 @@ func IsNumeric(s interface{}) bool {
 	return false
 }
 
-// IsString checks if a value is a string
-func IsString(s interface{}) bool {
+// isString checks if a value is a string
+func isString(s interface{}) bool {
 	switch s.(type) {
 	case string:
 		return true
@@ -54,7 +54,7 @@ func IsString(s interface{}) bool {
 
 // IsDate checks if a value is a date
 func IsDate(s interface{}) bool {
-	if IsString(s) {
+	if isString(s) {
 		_, err := dateparse.ParseAny(s.(string))
 
 		if err != nil {

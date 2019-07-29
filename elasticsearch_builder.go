@@ -435,7 +435,7 @@ func (esb *ElasticsearchBuilder) processAggregationBuckets(buckets []*gabs.Conta
 		aggregationBucket := new(AggregationBucket)
 		subAggregations := AggregationResponses{}
 
-		for _, field := range SliceRemove(0, esb.groupBy.GetFields()) {
+		for _, field := range SliceRemove(0, esb.groupBy.Fields) {
 			data, err := json.Marshal(bucket.Path(field).Data())
 
 			if err != nil {
@@ -492,7 +492,7 @@ func (esb *ElasticsearchBuilder) build() (*elastic.SearchService, error) {
 
 	if esb.sorts != nil {
 		for _, sort := range esb.sorts {
-			query = query.Sort(sort.GetField(), sort.GetOrder())
+			query = query.Sort(sort.Field, sort.Order)
 		}
 	}
 
@@ -501,7 +501,7 @@ func (esb *ElasticsearchBuilder) build() (*elastic.SearchService, error) {
 			return nil, err
 		}
 
-		query = query.Size(esb.limit.GetLimit())
+		query = query.Size(esb.limit.Limit)
 	}
 
 	if esb.from != nil {
@@ -509,19 +509,17 @@ func (esb *ElasticsearchBuilder) build() (*elastic.SearchService, error) {
 			return nil, err
 		}
 
-		query = query.From(esb.from.GetFrom())
+		query = query.From(esb.from.From)
 	}
 
 	if esb.groupBy != nil {
-		query = esb.processGroupBy(esb.groupBy.GetFields(), query)
+		query = esb.processGroupBy(esb.groupBy.Fields, query)
 	}
 
 	return query, nil
 }
 
 func (esb *ElasticsearchBuilder) query() *elastic.BoolQuery {
-	q := elastic.NewBoolQuery()
-
 	wheres := make(chan []elastic.Query)
 	notWheres := make(chan []elastic.Query)
 	matches := make(chan []elastic.Query)
@@ -532,11 +530,9 @@ func (esb *ElasticsearchBuilder) query() *elastic.BoolQuery {
 	go esb.processMatches(matches, notMatches)
 	go esb.processFilters(filters)
 
-	return q.Must(<-wheres...).
-		MustNot(<-notWheres...).
-		Must(<-matches...).
-		MustNot(<-notMatches...).
-		Filter(<-filters...)
+	q := elastic.NewBoolQuery()
+
+	return q.Must(<-wheres...).MustNot(<-notWheres...).Must(<-matches...).MustNot(<-notMatches...).Filter(<-filters...)
 }
 
 func (esb *ElasticsearchBuilder) processWheres(wheres chan []elastic.Query, notWheres chan []elastic.Query) {
@@ -552,29 +548,29 @@ func (esb *ElasticsearchBuilder) processWheres(wheres chan []elastic.Query, notW
 	}
 
 	for _, where := range esb.wheres {
-		if where.GetOperand() == "=" {
-			terms = append(terms, elastic.NewTermQuery(where.GetField(), where.GetValue()))
+		if where.Operand == "=" {
+			terms = append(terms, elastic.NewTermQuery(where.Field, where.Value))
 			continue
 		}
 
-		if where.GetOperand() == "<>" {
-			notTerms = append(notTerms, elastic.NewTermQuery(where.GetField(), where.GetValue()))
+		if where.Operand == "<>" {
+			notTerms = append(notTerms, elastic.NewTermQuery(where.Field, where.Value))
 			continue
 		}
 
-		if !where.IsString() || where.IsDate() {
-			switch where.GetOperand() {
+		if !where.isString() || where.IsDate() {
+			switch where.Operand {
 			case ">":
-				terms = append(terms, elastic.NewRangeQuery(where.GetField()).Gt(where.GetValue()))
+				terms = append(terms, elastic.NewRangeQuery(where.Field).Gt(where.Value))
 				break
 			case "<":
-				terms = append(terms, elastic.NewRangeQuery(where.GetField()).Lt(where.GetValue()))
+				terms = append(terms, elastic.NewRangeQuery(where.Field).Lt(where.Value))
 				break
 			case ">=":
-				terms = append(terms, elastic.NewRangeQuery(where.GetField()).Gte(where.GetValue()))
+				terms = append(terms, elastic.NewRangeQuery(where.Field).Gte(where.Value))
 				break
 			case "<=":
-				terms = append(terms, elastic.NewRangeQuery(where.GetField()).Lte(where.GetValue()))
+				terms = append(terms, elastic.NewRangeQuery(where.Field).Lte(where.Value))
 				break
 			}
 		}
@@ -592,24 +588,24 @@ func (esb *ElasticsearchBuilder) processFilters(filters chan []elastic.Query) {
 	}
 
 	for _, filter := range esb.filters {
-		if filter.GetOperand() == "=" {
-			terms = append(terms, elastic.NewTermQuery(filter.GetField(), filter.GetValue()))
+		if filter.Operand == "=" {
+			terms = append(terms, elastic.NewTermQuery(filter.Field, filter.Value))
 			continue
 		}
 
-		if !filter.IsString() || filter.IsDate() {
-			switch filter.GetOperand() {
+		if !filter.isString() || filter.IsDate() {
+			switch filter.Operand {
 			case ">":
-				terms = append(terms, elastic.NewRangeQuery(filter.GetField()).Gt(filter.GetValue()))
+				terms = append(terms, elastic.NewRangeQuery(filter.Field).Gt(filter.Value))
 				break
 			case "<":
-				terms = append(terms, elastic.NewRangeQuery(filter.GetField()).Lt(filter.GetValue()))
+				terms = append(terms, elastic.NewRangeQuery(filter.Field).Lt(filter.Value))
 				break
 			case ">=":
-				terms = append(terms, elastic.NewRangeQuery(filter.GetField()).Gte(filter.GetValue()))
+				terms = append(terms, elastic.NewRangeQuery(filter.Field).Gte(filter.Value))
 				break
 			case "<=":
-				terms = append(terms, elastic.NewRangeQuery(filter.GetField()).Lte(filter.GetValue()))
+				terms = append(terms, elastic.NewRangeQuery(filter.Field).Lte(filter.Value))
 				break
 			}
 		}
@@ -635,12 +631,12 @@ func (esb *ElasticsearchBuilder) processMatches(matches chan []elastic.Query, no
 	}
 
 	for _, match := range esb.matches {
-		if match.GetOperand() == "=" {
-			terms = append(terms, elastic.NewMatchQuery(match.GetField(), match.GetValue()))
+		if match.Operand == "=" {
+			terms = append(terms, elastic.NewMatchQuery(match.Field, match.Value))
 		}
 
-		if match.GetOperand() == "<>" {
-			notTerms = append(notTerms, elastic.NewMatchQuery(match.GetField(), match.GetValue()))
+		if match.Operand == "<>" {
+			notTerms = append(notTerms, elastic.NewMatchQuery(match.Field, match.Value))
 		}
 	}
 

@@ -4,24 +4,21 @@ import "errors"
 
 type queryBuilder struct {
 	wheres      []*where
-	matches     []*Match
-	matchIns    []*MatchIn
-	matchNotIns []*MatchNotIn
-	filters     []*Filter
-	filterIns   []*FilterIn
+	matches     []*match
+	matchIns    []*matchIn
+	matchNotIns []*matchNotIn
+	filters     []*filter
+	filterIns   []*filterIn
 	whereIns    []*whereIn
 	whereNotIns []*whereNotIn
-	sorts       []*Sort
-	limit       *Limit
-	groupBy     *GroupBy
-	from        *From
+	sorts       []*sort
+	limit       *limit
+	groupBy     *groupBy
+	from        *from
 }
 
 func (b *queryBuilder) Where(field string, operand string, value interface{}) *queryBuilder {
-	where := new(where).New(field, operand, value)
-
-	temp := b.wheres
-	b.wheres = append(temp, where)
+	b.wheres = append(b.wheres, &where{Field: field, Operand: operand, Value: value})
 
 	return b
 }
@@ -33,82 +30,61 @@ func (b *queryBuilder) WhereIn(field string, values []interface{}) *queryBuilder
 }
 
 func (b *queryBuilder) WhereNotIn(field string, values []interface{}) *queryBuilder {
-	whereNotIn := new(whereNotIn).New(field, values)
-
-	temp := b.whereNotIns
-	b.whereNotIns = append(temp, whereNotIn)
+	b.whereNotIns = append(b.whereNotIns, &whereNotIn{Field: field, Values: values})
 
 	return b
 }
 
 func (b *queryBuilder) Filter(field string, operand string, value interface{}) *queryBuilder {
-	filter := new(Filter).New(field, operand, value)
-
-	temp := b.filters
-	b.filters = append(temp, filter)
+	b.filters = append(b.filters, &filter{Field: field, Operand: operand, Value: value})
 
 	return b
 }
 
 func (b *queryBuilder) FilterIn(field string, values []interface{}) *queryBuilder {
-	filterIn := new(FilterIn).New(field, values)
-
-	temp := b.filterIns
-	b.filterIns = append(temp, filterIn)
+	b.filterIns = append(b.filterIns, &filterIn{Field: field, Values: values})
 
 	return b
 }
 
 func (b *queryBuilder) Match(field string, operand string, value interface{}) *queryBuilder {
-	match := new(Match).New(field, operand, value)
-
-	temp := b.matches
-	b.matches = append(temp, match)
+	b.matches = append(b.matches, &match{Field: field, Operand: operand, Value: value})
 
 	return b
 }
 
 func (b *queryBuilder) MatchIn(field string, values []interface{}) *queryBuilder {
-	matchIn := new(MatchIn).New(field, values)
-
-	temp := b.matchIns
-	b.matchIns = append(temp, matchIn)
+	b.matchIns = append(b.matchIns, &matchIn{Field: field, Values: values})
 
 	return b
 }
 
 func (b *queryBuilder) MatchNotIn(field string, values []interface{}) *queryBuilder {
-	matchNotIn := new(MatchNotIn).New(field, values)
-
-	temp := b.matchNotIns
-	b.matchNotIns = append(temp, matchNotIn)
+	b.matchNotIns = append(b.matchNotIns, &matchNotIn{Field: field, Values: values})
 
 	return b
 }
 
 func (b *queryBuilder) OrderBy(field string, asc bool) *queryBuilder {
-	sort := new(Sort).New(field, asc)
-
-	temp := b.sorts
-	b.sorts = append(temp, sort)
+	b.sorts = append(b.sorts, &sort{Field: field, Order: asc})
 
 	return b
 }
 
-func (b *queryBuilder) Limit(limit int) *queryBuilder {
-	b.limit = new(Limit).New(limit)
+func (b *queryBuilder) Limit(value int) *queryBuilder {
+	b.limit = &limit{Limit: value}
 
 	return b
 }
 
 func (b *queryBuilder) GroupBy(fields ...string) *queryBuilder {
-	b.groupBy = new(GroupBy).New(fields)
+	b.groupBy = &groupBy{Fields: fields}
 
 	return b
 }
 
-func (b *queryBuilder) From(from int) *queryBuilder {
-	b.from = new(From).New(from)
+func (b *queryBuilder) From(value int) *queryBuilder {
+	b.from = &from{From: value}
 
 	return b
 }
@@ -174,7 +150,7 @@ func (b *queryBuilder) validateMatchNotIns() error {
 }
 
 func (b *queryBuilder) validateLimit() error {
-	if b.limit.GetLimit() <= 0 {
+	if b.limit.Limit <= 0 {
 		return errors.New("The limit needs to be greater than 0.")
 	}
 
@@ -182,7 +158,7 @@ func (b *queryBuilder) validateLimit() error {
 }
 
 func (b *queryBuilder) validateFrom() error {
-	if b.from.GetFrom() < 0 {
+	if b.from.From < 0 {
 		return errors.New("The limit needs to be greater than 0.")
 	}
 
