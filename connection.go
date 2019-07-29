@@ -43,6 +43,7 @@ func (c *connection) Connect() error {
 	return nil
 }
 
+// Indexer creates a new indexer
 func (c *connection) Indexer(options *IndexOptions) *indexer {
 	return &indexer{
 		client:  c.client,
@@ -50,6 +51,7 @@ func (c *connection) Indexer(options *IndexOptions) *indexer {
 	}
 }
 
+// Builder creates a new Builder
 func (c *connection) Builder(index string) *ElasticsearchBuilder {
 	return &ElasticsearchBuilder{
 		client: c.client,
