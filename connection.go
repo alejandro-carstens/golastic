@@ -52,8 +52,8 @@ func (c *connection) Indexer(options *IndexOptions) *indexer {
 }
 
 // Builder creates a new Builder
-func (c *connection) Builder(index string) *ElasticsearchBuilder {
-	return &ElasticsearchBuilder{
+func (c *connection) Builder(index string) *builder {
+	return &builder{
 		client: c.client,
 		index:  index,
 	}
