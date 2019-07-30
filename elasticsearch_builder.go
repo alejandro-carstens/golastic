@@ -558,7 +558,7 @@ func (esb *ElasticsearchBuilder) processWheres(wheres chan []elastic.Query, notW
 			continue
 		}
 
-		if !where.isString() || where.IsDate() {
+		if !where.isString() || where.isDate() {
 			switch where.Operand {
 			case ">":
 				terms = append(terms, elastic.NewRangeQuery(where.Field).Gt(where.Value))
@@ -593,7 +593,7 @@ func (esb *ElasticsearchBuilder) processFilters(filters chan []elastic.Query) {
 			continue
 		}
 
-		if !filter.isString() || filter.IsDate() {
+		if !filter.isString() || filter.isDate() {
 			switch filter.Operand {
 			case ">":
 				terms = append(terms, elastic.NewRangeQuery(filter.Field).Gt(filter.Value))

@@ -1,13 +1,15 @@
 package golastic
 
-import "errors"
+import (
+	"errors"
+)
 
 type whereIn struct {
 	Field  string
 	Values []interface{}
 }
 
-func (wi *whereIn) Validate() error {
+func (wi *whereIn) validate() error {
 	for _, value := range wi.Values {
 		if !isNumeric(value) && !isString(value) {
 			return errors.New("The value is not numeric nor a string.")
@@ -29,9 +31,9 @@ type where struct {
 	Value   interface{}
 }
 
-func (w *where) Validate() error {
-	if err := w.validateOperand(w.Operand); err != nil {
-		return err
+func (w *where) validate() error {
+	if !inSlice(w.Operand, "<>", "=", ">", "<", "<=", ">=") {
+		return errors.New("The operand is invalid.")
 	}
 
 	if !isNumeric(w.Value) {
@@ -51,16 +53,8 @@ func (w *where) isString() bool {
 	return isString(w.Value)
 }
 
-func (w *where) IsDate() bool {
+func (w *where) isDate() bool {
 	return IsDate(w.Value)
-}
-
-func (w *where) validateOperand(operand string) error {
-	if operand == "<>" || operand == "=" || operand == ">" || operand == "<" || operand == "<=" || operand == ">=" {
-		return nil
-	}
-
-	return errors.New("The operand is invalid.")
 }
 
 type filter struct {
@@ -70,9 +64,9 @@ type filter struct {
 	Value   interface{}
 }
 
-func (f *filter) Validate() error {
-	if err := f.validateOperand(f.Operand); err != nil {
-		return err
+func (f *filter) validate() error {
+	if !inSlice(f.Operand, "=", ">", "<", "<=", ">=") {
+		return errors.New("The operand is invalid.")
 	}
 
 	if !isNumeric(f.Value) {
@@ -88,14 +82,6 @@ func (f *filter) Validate() error {
 	return nil
 }
 
-func (f *filter) validateOperand(operand string) error {
-	if operand == "=" || operand == ">" || operand == "<" || operand == "<=" || operand == ">=" {
-		return nil
-	}
-
-	return errors.New("The operand is invalid.")
-}
-
 type filterIn struct {
 	whereIn
 	Field  string
@@ -109,9 +95,9 @@ type match struct {
 	Value   interface{}
 }
 
-func (m *match) Validate() error {
-	if err := m.validateOperand(m.Operand); err != nil {
-		return err
+func (m *match) validate() error {
+	if !inSlice(m.Operand, "=", "<>") {
+		return errors.New("The operand is invalid.")
 	}
 
 	if !isNumeric(m.Value) {
@@ -125,14 +111,6 @@ func (m *match) Validate() error {
 	}
 
 	return nil
-}
-
-func (m *match) validateOperand(operand string) error {
-	if operand == "=" || operand == "<>" {
-		return nil
-	}
-
-	return errors.New("The operand is invalid.")
 }
 
 type matchIn struct {

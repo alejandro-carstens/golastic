@@ -2,6 +2,7 @@ package golastic
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/araddon/dateparse"
 )
@@ -26,7 +27,6 @@ func FromJson(value string, entity interface{}) (interface{}, error) {
 	return entity, err
 }
 
-// isNumeric checks if a value is numeric
 func isNumeric(s interface{}) bool {
 	switch s.(type) {
 	case int:
@@ -42,11 +42,28 @@ func isNumeric(s interface{}) bool {
 	return false
 }
 
-// isString checks if a value is a string
 func isString(s interface{}) bool {
 	switch s.(type) {
 	case string:
 		return true
+	}
+
+	return false
+}
+
+func isValidOperand(operand string) error {
+	if operand == "<>" || operand == "=" || operand == ">" || operand == "<" || operand == "<=" || operand == ">=" {
+		return nil
+	}
+
+	return errors.New("The operand is invalid.")
+}
+
+func inSlice(needle string, haystack ...string) bool {
+	for _, value := range haystack {
+		if needle == value {
+			return true
+		}
 	}
 
 	return false

@@ -17,81 +17,81 @@ type queryBuilder struct {
 	from        *from
 }
 
-func (b *queryBuilder) Where(field string, operand string, value interface{}) *queryBuilder {
-	b.wheres = append(b.wheres, &where{Field: field, Operand: operand, Value: value})
+func (qb *queryBuilder) Where(field string, operand string, value interface{}) *queryBuilder {
+	qb.wheres = append(qb.wheres, &where{Field: field, Operand: operand, Value: value})
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) WhereIn(field string, values []interface{}) *queryBuilder {
-	b.whereIns = append(b.whereIns, &whereIn{Field: field, Values: values})
+func (qb *queryBuilder) WhereIn(field string, values []interface{}) *queryBuilder {
+	qb.whereIns = append(qb.whereIns, &whereIn{Field: field, Values: values})
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) WhereNotIn(field string, values []interface{}) *queryBuilder {
-	b.whereNotIns = append(b.whereNotIns, &whereNotIn{Field: field, Values: values})
+func (qb *queryBuilder) WhereNotIn(field string, values []interface{}) *queryBuilder {
+	qb.whereNotIns = append(qb.whereNotIns, &whereNotIn{Field: field, Values: values})
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) Filter(field string, operand string, value interface{}) *queryBuilder {
-	b.filters = append(b.filters, &filter{Field: field, Operand: operand, Value: value})
+func (qb *queryBuilder) Filter(field string, operand string, value interface{}) *queryBuilder {
+	qb.filters = append(qb.filters, &filter{Field: field, Operand: operand, Value: value})
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) FilterIn(field string, values []interface{}) *queryBuilder {
-	b.filterIns = append(b.filterIns, &filterIn{Field: field, Values: values})
+func (qb *queryBuilder) FilterIn(field string, values []interface{}) *queryBuilder {
+	qb.filterIns = append(qb.filterIns, &filterIn{Field: field, Values: values})
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) Match(field string, operand string, value interface{}) *queryBuilder {
-	b.matches = append(b.matches, &match{Field: field, Operand: operand, Value: value})
+func (qb *queryBuilder) Match(field string, operand string, value interface{}) *queryBuilder {
+	qb.matches = append(qb.matches, &match{Field: field, Operand: operand, Value: value})
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) MatchIn(field string, values []interface{}) *queryBuilder {
-	b.matchIns = append(b.matchIns, &matchIn{Field: field, Values: values})
+func (qb *queryBuilder) MatchIn(field string, values []interface{}) *queryBuilder {
+	qb.matchIns = append(qb.matchIns, &matchIn{Field: field, Values: values})
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) MatchNotIn(field string, values []interface{}) *queryBuilder {
-	b.matchNotIns = append(b.matchNotIns, &matchNotIn{Field: field, Values: values})
+func (qb *queryBuilder) MatchNotIn(field string, values []interface{}) *queryBuilder {
+	qb.matchNotIns = append(qb.matchNotIns, &matchNotIn{Field: field, Values: values})
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) OrderBy(field string, asc bool) *queryBuilder {
-	b.sorts = append(b.sorts, &sort{Field: field, Order: asc})
+func (qb *queryBuilder) OrderBy(field string, asc bool) *queryBuilder {
+	qb.sorts = append(qb.sorts, &sort{Field: field, Order: asc})
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) Limit(value int) *queryBuilder {
-	b.limit = &limit{Limit: value}
+func (qb *queryBuilder) Limit(value int) *queryBuilder {
+	qb.limit = &limit{Limit: value}
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) GroupBy(fields ...string) *queryBuilder {
-	b.groupBy = &groupBy{Fields: fields}
+func (qb *queryBuilder) GroupBy(fields ...string) *queryBuilder {
+	qb.groupBy = &groupBy{Fields: fields}
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) From(value int) *queryBuilder {
-	b.from = &from{From: value}
+func (qb *queryBuilder) From(value int) *queryBuilder {
+	qb.from = &from{From: value}
 
-	return b
+	return qb
 }
 
-func (b *queryBuilder) validateWheres() error {
-	for _, where := range b.wheres {
-		if err := where.Validate(); err != nil {
+func (qb *queryBuilder) validateWheres() error {
+	for _, where := range qb.wheres {
+		if err := where.validate(); err != nil {
 			return err
 		}
 	}
@@ -99,9 +99,9 @@ func (b *queryBuilder) validateWheres() error {
 	return nil
 }
 
-func (b *queryBuilder) validateFilters() error {
-	for _, filter := range b.filters {
-		if err := filter.Validate(); err != nil {
+func (qb *queryBuilder) validateFilters() error {
+	for _, filter := range qb.filters {
+		if err := filter.validate(); err != nil {
 			return err
 		}
 	}
@@ -109,9 +109,9 @@ func (b *queryBuilder) validateFilters() error {
 	return nil
 }
 
-func (b *queryBuilder) validateFilterIns() error {
-	for _, filterIn := range b.filterIns {
-		if err := filterIn.Validate(); err != nil {
+func (qb *queryBuilder) validateFilterIns() error {
+	for _, filterIn := range qb.filterIns {
+		if err := filterIn.validate(); err != nil {
 			return err
 		}
 	}
@@ -119,9 +119,9 @@ func (b *queryBuilder) validateFilterIns() error {
 	return nil
 }
 
-func (b *queryBuilder) validateMatches() error {
-	for _, match := range b.matches {
-		if err := match.Validate(); err != nil {
+func (qb *queryBuilder) validateMatches() error {
+	for _, match := range qb.matches {
+		if err := match.validate(); err != nil {
 			return err
 		}
 	}
@@ -129,9 +129,9 @@ func (b *queryBuilder) validateMatches() error {
 	return nil
 }
 
-func (b *queryBuilder) validateMatchIns() error {
-	for _, matchIn := range b.matchIns {
-		if err := matchIn.Validate(); err != nil {
+func (qb *queryBuilder) validateMatchIns() error {
+	for _, matchIn := range qb.matchIns {
+		if err := matchIn.validate(); err != nil {
 			return err
 		}
 	}
@@ -139,9 +139,9 @@ func (b *queryBuilder) validateMatchIns() error {
 	return nil
 }
 
-func (b *queryBuilder) validateMatchNotIns() error {
-	for _, matchNotIn := range b.matchNotIns {
-		if err := matchNotIn.Validate(); err != nil {
+func (qb *queryBuilder) validateMatchNotIns() error {
+	for _, matchNotIn := range qb.matchNotIns {
+		if err := matchNotIn.validate(); err != nil {
 			return err
 		}
 	}
@@ -149,25 +149,25 @@ func (b *queryBuilder) validateMatchNotIns() error {
 	return nil
 }
 
-func (b *queryBuilder) validateLimit() error {
-	if b.limit.Limit <= 0 {
+func (qb *queryBuilder) validateLimit() error {
+	if qb.limit.Limit <= 0 {
 		return errors.New("The limit needs to be greater than 0.")
 	}
 
 	return nil
 }
 
-func (b *queryBuilder) validateFrom() error {
-	if b.from.From < 0 {
+func (qb *queryBuilder) validateFrom() error {
+	if qb.from.From < 0 {
 		return errors.New("The limit needs to be greater than 0.")
 	}
 
 	return nil
 }
 
-func (b *queryBuilder) validateWhereIns() error {
-	for _, whereIn := range b.whereIns {
-		if err := whereIn.Validate(); err != nil {
+func (qb *queryBuilder) validateWhereIns() error {
+	for _, whereIn := range qb.whereIns {
+		if err := whereIn.validate(); err != nil {
 			return err
 		}
 	}
@@ -175,9 +175,9 @@ func (b *queryBuilder) validateWhereIns() error {
 	return nil
 }
 
-func (b *queryBuilder) validateWhereNotIns() error {
-	for _, whereNotIn := range b.whereNotIns {
-		if err := whereNotIn.Validate(); err != nil {
+func (qb *queryBuilder) validateWhereNotIns() error {
+	for _, whereNotIn := range qb.whereNotIns {
+		if err := whereNotIn.validate(); err != nil {
 			return err
 		}
 	}
@@ -185,46 +185,46 @@ func (b *queryBuilder) validateWhereNotIns() error {
 	return nil
 }
 
-func (b *queryBuilder) validateWhereClauses() error {
-	if err := b.validateWhereIns(); err != nil {
+func (qb *queryBuilder) validateWhereClauses() error {
+	if err := qb.validateWhereIns(); err != nil {
 		return err
 	}
 
-	if err := b.validateWhereNotIns(); err != nil {
+	if err := qb.validateWhereNotIns(); err != nil {
 		return err
 	}
 
-	return b.validateWheres()
+	return qb.validateWheres()
 }
 
-func (b *queryBuilder) validateFilterClauses() error {
-	if err := b.validateFilterIns(); err != nil {
+func (qb *queryBuilder) validateFilterClauses() error {
+	if err := qb.validateFilterIns(); err != nil {
 		return err
 	}
 
-	return b.validateFilters()
+	return qb.validateFilters()
 }
 
-func (b *queryBuilder) validateMatchClauses() error {
-	if err := b.validateMatchIns(); err != nil {
+func (qb *queryBuilder) validateMatchClauses() error {
+	if err := qb.validateMatchIns(); err != nil {
 		return err
 	}
 
-	if err := b.validateMatchNotIns(); err != nil {
+	if err := qb.validateMatchNotIns(); err != nil {
 		return err
 	}
 
-	return b.validateMatches()
+	return qb.validateMatches()
 }
 
-func (b *queryBuilder) validateMustClauses() error {
-	if err := b.validateWhereClauses(); err != nil {
+func (qb *queryBuilder) validateMustClauses() error {
+	if err := qb.validateWhereClauses(); err != nil {
 		return err
 	}
 
-	if err := b.validateFilterClauses(); err != nil {
+	if err := qb.validateFilterClauses(); err != nil {
 		return err
 	}
 
-	return b.validateMatchClauses()
+	return qb.validateMatchClauses()
 }
