@@ -14,6 +14,8 @@ import (
 
 const CONCURRENT_BATCH int = 10
 const LIMIT int = 10000
+const VALUE_AS_STRING string = "value_as_string"
+const VALUE string = "value"
 
 type builder struct {
 	queryBuilder
@@ -250,12 +252,7 @@ func (esb *builder) MinMax(field string, isDateField bool) (*MinMaxResponse, err
 		}
 	  }`
 
-	result, err := esb.client.
-		Search().
-		Index(esb.index).
-		Source(rawQuery).
-		Size(0).
-		Do(context.Background())
+	result, err := esb.client.Search().Index(esb.index).Source(rawQuery).Size(0).Do(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -657,12 +654,12 @@ func (esb *builder) processGroupBy(fields []string, query *elastic.SearchService
 }
 
 func (esb *builder) parseMinMaxResponse(aggs elastic.Aggregations, isDateField bool) (*MinMaxResponse, error) {
-	response := new(MinMaxResponse)
+	response := &MinMaxResponse{}
 
-	check := "value"
+	check := VALUE
 
 	if isDateField {
-		check = "value_as_string"
+		check = VALUE_AS_STRING
 	}
 
 	min, err := aggs["min"].MarshalJSON()
