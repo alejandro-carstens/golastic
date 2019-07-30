@@ -6,10 +6,9 @@ import (
 	"errors"
 	"math"
 
-	"github.com/rs/xid"
-
 	"github.com/Jeffail/gabs"
 	elastic "github.com/alejandro-carstens/elasticfork"
+	"github.com/rs/xid"
 )
 
 const CONCURRENT_BATCH int = 10
@@ -123,7 +122,7 @@ func (esb *builder) Get(items interface{}) error {
 
 	sources := esb.processGetResults(response.Hits.Hits)
 
-	results, err := ToJson(sources)
+	results, err := toJson(sources)
 
 	if err != nil {
 		return err
@@ -148,7 +147,7 @@ func (esb *builder) Execute(params map[string]interface{}) (*WriteByQueryRespons
 		return nil, err
 	}
 
-	result, err := ToJson(updateResponse)
+	result, err := toJson(updateResponse)
 
 	if err != nil {
 		return nil, err
@@ -156,7 +155,7 @@ func (esb *builder) Execute(params map[string]interface{}) (*WriteByQueryRespons
 
 	var response *WriteByQueryResponse
 
-	if _, err := FromJson(result, &response); err != nil {
+	if _, err := fromJson(result, &response); err != nil {
 		return nil, err
 	}
 
@@ -175,7 +174,7 @@ func (esb *builder) Destroy() (*WriteByQueryResponse, error) {
 		return nil, err
 	}
 
-	result, err := ToJson(destroyResponse)
+	result, err := toJson(destroyResponse)
 
 	if err != nil {
 		return nil, err
@@ -183,7 +182,7 @@ func (esb *builder) Destroy() (*WriteByQueryResponse, error) {
 
 	var response *WriteByQueryResponse
 
-	if _, err := FromJson(result, &response); err != nil {
+	if _, err := fromJson(result, &response); err != nil {
 		return nil, err
 	}
 
@@ -296,7 +295,7 @@ func (esb *builder) processCursorResults(hits []*elastic.SearchHit) ([]interface
 		sources = append(sources, sourceMaps[i]...)
 	}
 
-	results, err := ToJson(sources)
+	results, err := toJson(sources)
 
 	return sortResponse, results, err
 }
@@ -365,7 +364,7 @@ func (esb *builder) processBulkRequest(batchClient *elastic.BulkService, num int
 		return nil, errors.New("The number of actions send does not match the number of arguments.")
 	}
 
-	result, err := ToJson(batchResponse)
+	result, err := toJson(batchResponse)
 
 	if err != nil {
 		return nil, err
@@ -373,7 +372,7 @@ func (esb *builder) processBulkRequest(batchClient *elastic.BulkService, num int
 
 	var response *WriteResponse
 
-	if _, err := FromJson(result, &response); err != nil {
+	if _, err := fromJson(result, &response); err != nil {
 		return nil, err
 	}
 
@@ -432,7 +431,7 @@ func (esb *builder) processAggregationBuckets(buckets []*gabs.Container) (Aggreg
 		aggregationBucket := new(AggregationBucket)
 		subAggregations := AggregationResponses{}
 
-		for _, field := range SliceRemove(0, esb.groupBy.Fields) {
+		for _, field := range sliceRemove(0, esb.groupBy.Fields) {
 			data, err := json.Marshal(bucket.Path(field).Data())
 
 			if err != nil {
@@ -646,7 +645,7 @@ func (esb *builder) processGroupBy(fields []string, query *elastic.SearchService
 
 	aggr := elastic.NewTermsAggregation().Field(name)
 
-	for _, field := range SliceRemove(0, fields) {
+	for _, field := range sliceRemove(0, fields) {
 		aggr = aggr.SubAggregation(field, elastic.NewTermsAggregation().Field(field))
 	}
 

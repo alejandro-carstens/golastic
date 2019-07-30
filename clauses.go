@@ -1,8 +1,6 @@
 package golastic
 
-import (
-	"errors"
-)
+import "errors"
 
 type whereIn struct {
 	Field  string
@@ -54,7 +52,7 @@ func (w *where) isString() bool {
 }
 
 func (w *where) isDate() bool {
-	return IsDate(w.Value)
+	return isDate(w.Value)
 }
 
 type filter struct {

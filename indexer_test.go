@@ -18,7 +18,7 @@ func (e *Example) ID() string {
 }
 
 func indexConfig() string {
-	schema, _ := ToJson(map[string]interface{}{
+	schema, _ := toJson(map[string]interface{}{
 		"settings": map[string]int{
 			"number_of_shards":   1,
 			"number_of_replicas": 1,

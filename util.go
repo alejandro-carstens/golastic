@@ -2,7 +2,6 @@ package golastic
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/araddon/dateparse"
 )
@@ -13,15 +12,13 @@ func Connection(context *ConnectionContext) *connection {
 	}
 }
 
-// ToJson encodes json.Marshal to a string
-func ToJson(item interface{}) (string, error) {
+func toJson(item interface{}) (string, error) {
 	value, err := json.Marshal(item)
 
 	return string(value), err
 }
 
-// FromJson performs a json.Unmarshal
-func FromJson(value string, entity interface{}) (interface{}, error) {
+func fromJson(value string, entity interface{}) (interface{}, error) {
 	err := json.Unmarshal([]byte(value), &entity)
 
 	return entity, err
@@ -51,14 +48,6 @@ func isString(s interface{}) bool {
 	return false
 }
 
-func isValidOperand(operand string) error {
-	if operand == "<>" || operand == "=" || operand == ">" || operand == "<" || operand == "<=" || operand == ">=" {
-		return nil
-	}
-
-	return errors.New("The operand is invalid.")
-}
-
 func inSlice(needle string, haystack ...string) bool {
 	for _, value := range haystack {
 		if needle == value {
@@ -69,8 +58,7 @@ func inSlice(needle string, haystack ...string) bool {
 	return false
 }
 
-// IsDate checks if a value is a date
-func IsDate(s interface{}) bool {
+func isDate(s interface{}) bool {
 	if isString(s) {
 		_, err := dateparse.ParseAny(s.(string))
 
@@ -84,8 +72,7 @@ func IsDate(s interface{}) bool {
 	return false
 }
 
-// SliceRemove unsets string at index s from a string slice
-func SliceRemove(n int, slice []string) []string {
+func sliceRemove(n int, slice []string) []string {
 	arr := []string{}
 
 	for i, val := range slice {
