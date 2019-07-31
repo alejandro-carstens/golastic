@@ -2,7 +2,6 @@ package golastic
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 
@@ -29,26 +28,24 @@ type indexer struct {
 }
 
 // SetOptions sets the index options for the action to be performed
-func (esi *indexer) SetOptions(options *IndexOptions) {
-	esi.options = options
+func (i *indexer) SetOptions(options *IndexOptions) {
+	i.options = options
 }
 
 // Exists checks if a given index exists on ElasticSearch
-func (esi *indexer) Exists(name string) (bool, error) {
-	return esi.client.IndexExists(name).Do(context.Background())
+func (i *indexer) Exists(name string) (bool, error) {
+	return i.client.IndexExists(name).Do(context.Background())
 }
 
 // CreateIndex creates and ElasticSearch index
-func (esi *indexer) CreateIndex(name string, schema string) error {
-	ctx := context.Background()
+func (i *indexer) CreateIndex(name string, schema string) error {
+	service := i.client.CreateIndex(name)
 
-	service := esi.client.CreateIndex(name)
-
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.Timeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.Timeout(i.options.Timeout)
 	}
 
-	createIndex, err := service.BodyString(schema).Do(ctx)
+	createIndex, err := service.BodyString(schema).Do(context.Background())
 
 	if err != nil {
 		return err
@@ -62,16 +59,14 @@ func (esi *indexer) CreateIndex(name string, schema string) error {
 }
 
 // DeleteIndex deletes an ElasticSearch Index
-func (esi *indexer) DeleteIndex(name string) error {
-	ctx := context.Background()
+func (i *indexer) DeleteIndex(name string) error {
+	service := i.client.DeleteIndex(name)
 
-	service := esi.client.DeleteIndex(name)
-
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.Timeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.Timeout(i.options.Timeout)
 	}
 
-	deleteIndex, err := service.Do(ctx)
+	deleteIndex, err := service.Do(context.Background())
 
 	if err != nil {
 		return err
@@ -85,39 +80,31 @@ func (esi *indexer) DeleteIndex(name string) error {
 }
 
 // ListIndices lists all open inidces on an elsasticsearch cluster
-func (esi *indexer) ListIndices() ([]string, error) {
-	return esi.client.IndexNames()
+func (i *indexer) ListIndices() ([]string, error) {
+	return i.client.IndexNames()
 }
 
 // ListAllIndices lists all indices on and elasticsearch cluster
-func (esi *indexer) ListAllIndices() ([]string, error) {
-	ctx := context.Background()
-
-	catIndicesResponse, err := esi.client.CatIndices().Columns("index").Do(ctx)
+func (i *indexer) ListAllIndices() ([]string, error) {
+	catIndicesResponse, err := i.client.CatIndices().Columns("index").Do(context.Background())
 
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := json.Marshal(catIndicesResponse)
+	container, err := toGabsContainer(catIndicesResponse)
 
 	if err != nil {
 		return nil, err
 	}
-
-	container, err := gabs.ParseJSON(b)
-
-	if err != nil {
-		return nil, err
-	}
-
-	indices := []string{}
 
 	children, err := container.Children()
 
 	if err != nil {
 		return nil, err
 	}
+
+	indices := []string{}
 
 	for _, child := range children {
 		index, valid := child.S("index").Data().(string)
@@ -133,10 +120,8 @@ func (esi *indexer) ListAllIndices() ([]string, error) {
 }
 
 // Settings gets the index settings for the specified indices
-func (esi *indexer) Settings(names ...string) (map[string]*gabs.Container, error) {
-	ctx := context.Background()
-
-	indicesSettings, err := esi.client.IndexGetSettings(names...).Do(ctx)
+func (i *indexer) Settings(names ...string) (map[string]*gabs.Container, error) {
+	indicesSettings, err := i.client.IndexGetSettings(names...).Do(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -145,13 +130,7 @@ func (esi *indexer) Settings(names ...string) (map[string]*gabs.Container, error
 	settings := map[string]*gabs.Container{}
 
 	for key, value := range indicesSettings {
-		b, err := json.Marshal(value.Settings)
-
-		if err != nil {
-			return nil, err
-		}
-
-		container, err := gabs.ParseJSON(b)
+		container, err := toGabsContainer(value.Settings)
 
 		if err != nil {
 			return nil, err
@@ -163,197 +142,95 @@ func (esi *indexer) Settings(names ...string) (map[string]*gabs.Container, error
 	return settings, nil
 }
 
-func (esi *indexer) GetTask(taskId string) (*gabs.Container, error) {
-	taskResponse, err := esi.client.TasksGetTask().TaskId(taskId).Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(taskResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+func (i *indexer) GetTask(taskId string) (*gabs.Container, error) {
+	return parse(i.client.TasksGetTask().TaskId(taskId).Do(context.Background()))
 }
 
-func (esi *indexer) GetClusterHealth(indices ...string) (*gabs.Container, error) {
-	clusterHealthResponse, err := esi.client.ClusterHealth().Index(indices...).Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(clusterHealthResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+func (i *indexer) GetClusterHealth(indices ...string) (*gabs.Container, error) {
+	return parse(i.client.ClusterHealth().Index(indices...).Do(context.Background()))
 }
 
-func (esi *indexer) GetIndices(indices ...string) (*gabs.Container, error) {
-	indexGetResponse, err := esi.client.IndexGet(indices...).Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(indexGetResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+func (i *indexer) GetIndices(indices ...string) (*gabs.Container, error) {
+	return parse(i.client.IndexGet(indices...).Do(context.Background()))
 }
 
-func (esi *indexer) PutSettings(body string, indices ...string) (*gabs.Container, error) {
-	service := esi.client.IndexPutSettings(indices...).BodyString(body)
+func (i *indexer) PutSettings(body string, indices ...string) (*gabs.Container, error) {
+	service := i.client.IndexPutSettings(indices...).BodyString(body)
 
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.MasterTimeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.MasterTimeout(i.options.Timeout)
 	}
 
-	putSettingsResponse, err := service.Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(putSettingsResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+	return parse(service.Do(context.Background()))
 }
 
-func (esi *indexer) CreateRepository(repository string, repoType string, verify bool, settings map[string]interface{}) (*gabs.Container, error) {
-	service := esi.client.SnapshotCreateRepository(repository).Type(repoType).Verify(verify).Settings(settings)
+func (i *indexer) CreateRepository(repository string, repoType string, verify bool, settings map[string]interface{}) (*gabs.Container, error) {
+	service := i.client.SnapshotCreateRepository(repository).Type(repoType).Verify(verify).Settings(settings)
 
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.MasterTimeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.MasterTimeout(i.options.Timeout)
 	}
 
-	response, err := service.Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(response)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+	return parse(service.Do(context.Background()))
 }
 
-func (esi *indexer) DeleteRepositories(respositories ...string) (*gabs.Container, error) {
-	service := esi.client.SnapshotDeleteRepository(respositories...)
+func (i *indexer) DeleteRepositories(respositories ...string) (*gabs.Container, error) {
+	service := i.client.SnapshotDeleteRepository(respositories...)
 
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.MasterTimeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.MasterTimeout(i.options.Timeout)
 	}
 
-	response, err := service.Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(response)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+	return parse(service.Do(context.Background()))
 }
 
-func (esi *indexer) Snapshot(repository string, snapshot string, indices ...string) (*gabs.Container, error) {
-	service := esi.client.SnapshotCreate(repository, snapshot)
+func (i *indexer) Snapshot(repository string, snapshot string, indices ...string) (*gabs.Container, error) {
+	service := i.client.SnapshotCreate(repository, snapshot)
 
-	if esi.options != nil {
-		service.WaitForCompletion(esi.options.WaitForCompletion)
+	if i.options != nil {
+		service.WaitForCompletion(i.options.WaitForCompletion)
 	}
 
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.MasterTimeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.MasterTimeout(i.options.Timeout)
 	}
 
 	body := map[string]interface{}{
-		"ignore_unavailable":   esi.options.IgnoreUnavailable,
-		"include_global_state": esi.options.IncludeGlobalState,
-		"partial":              esi.options.Partial,
+		"ignore_unavailable":   i.options.IgnoreUnavailable,
+		"include_global_state": i.options.IncludeGlobalState,
+		"partial":              i.options.Partial,
 		"indices":              strings.Join(indices, ","),
 	}
 
-	b, err := json.Marshal(body)
+	bodyJson, err := toGabsContainer(body)
 
 	if err != nil {
 		return nil, err
 	}
 
-	bodyJson, err := gabs.ParseJSON(b)
-
-	if err != nil {
-		return nil, err
-	}
-
-	snapshotResponse, err := service.BodyString(bodyJson.String()).Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err = json.Marshal(snapshotResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+	return parse(service.BodyString(bodyJson.String()).Do(context.Background()))
 }
 
-func (esi *indexer) GetSnapshots(respository string, snapshot string) (*gabs.Container, error) {
-	service := esi.client.SnapshotGet(respository)
+func (i *indexer) GetSnapshots(respository string, snapshot string) (*gabs.Container, error) {
+	service := i.client.SnapshotGet(respository)
 
 	if snapshot != "*" && len(snapshot) > 0 {
 		service.Snapshot(snapshot)
 	}
 
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.MasterTimeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.MasterTimeout(i.options.Timeout)
 	}
 
-	if esi.options != nil && esi.options.IgnoreUnavailable {
-		service.IgnoreUnavailable(esi.options.IgnoreUnavailable)
+	if i.options != nil && i.options.IgnoreUnavailable {
+		service.IgnoreUnavailable(i.options.IgnoreUnavailable)
 	}
 
-	response, err := service.Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(response)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+	return parse(service.Do(context.Background()))
 }
 
-func (esi *indexer) ListSnapshots(repository string) ([]string, error) {
-	response, err := esi.GetSnapshots(repository, "*")
+func (i *indexer) ListSnapshots(repository string) ([]string, error) {
+	response, err := i.GetSnapshots(repository, "*")
 
 	if err != nil {
 		return nil, err
@@ -380,68 +257,44 @@ func (esi *indexer) ListSnapshots(repository string) ([]string, error) {
 	return list, nil
 }
 
-func (esi *indexer) DeleteSnapshot(repository string, name string) (*gabs.Container, error) {
-	response, err := esi.client.SnapshotDelete(repository, name).Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(response)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+func (i *indexer) DeleteSnapshot(repository string, name string) (*gabs.Container, error) {
+	return parse(i.client.SnapshotDelete(repository, name).Do(context.Background()))
 }
 
-func (esi *indexer) SnapshotRestore(repository string, snapshot string) (*gabs.Container, error) {
-	service := esi.client.SnapshotRestore(repository, snapshot)
+func (i *indexer) SnapshotRestore(repository string, snapshot string) (*gabs.Container, error) {
+	service := i.client.SnapshotRestore(repository, snapshot)
 
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.MasterTimeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.MasterTimeout(i.options.Timeout)
 	}
 
-	if esi.options != nil && len(esi.options.Indices) > 0 {
-		service.Indices(esi.options.Indices...)
+	if i.options != nil && len(i.options.Indices) > 0 {
+		service.Indices(i.options.Indices...)
 	}
 
-	if esi.options != nil && len(esi.options.IndexSettings) > 0 {
-		service.IndexSettings(esi.options.IndexSettings)
+	if i.options != nil && len(i.options.IndexSettings) > 0 {
+		service.IndexSettings(i.options.IndexSettings)
 	}
 
-	if esi.options != nil && len(esi.options.RenamePattern) > 0 {
-		service.RenamePattern(esi.options.RenamePattern)
+	if i.options != nil && len(i.options.RenamePattern) > 0 {
+		service.RenamePattern(i.options.RenamePattern)
 	}
 
-	if esi.options != nil && len(esi.options.RenameReplacement) > 0 {
-		service.RenameReplacement(esi.options.RenameReplacement)
+	if i.options != nil && len(i.options.RenameReplacement) > 0 {
+		service.RenameReplacement(i.options.RenameReplacement)
 	}
 
-	if esi.options != nil {
-		service.WaitForCompletion(esi.options.WaitForCompletion).
-			IncludeAliases(esi.options.IncludeAliases).Partial(esi.options.Partial).
-			IncludeGlobalState(esi.options.IncludeGlobalState)
+	if i.options != nil {
+		service.WaitForCompletion(i.options.WaitForCompletion).
+			IncludeAliases(i.options.IncludeAliases).Partial(i.options.Partial).
+			IncludeGlobalState(i.options.IncludeGlobalState)
 	}
 
-	response, err := service.Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(response)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+	return parse(service.Do(context.Background()))
 }
 
-func (esi *indexer) Recovery(indices ...string) (map[string]*gabs.Container, error) {
-	response, err := esi.client.IndicesRecovery().Human(true).Indices(indices...).Do(context.Background())
+func (i *indexer) Recovery(indices ...string) (map[string]*gabs.Container, error) {
+	response, err := i.client.IndicesRecovery().Human(true).Indices(indices...).Do(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -450,13 +303,7 @@ func (esi *indexer) Recovery(indices ...string) (map[string]*gabs.Container, err
 	indicesRecoveryResponse := map[string]*gabs.Container{}
 
 	for index, recovery := range response {
-		b, err := json.Marshal(recovery)
-
-		if err != nil {
-			return nil, err
-		}
-
-		container, err := gabs.ParseJSON(b)
+		container, err := toGabsContainer(recovery)
 
 		if err != nil {
 			return nil, err
@@ -469,73 +316,35 @@ func (esi *indexer) Recovery(indices ...string) (map[string]*gabs.Container, err
 }
 
 // Close closes an elasticsearch index
-func (esi *indexer) Close(name string) (*gabs.Container, error) {
-	service := esi.client.CloseIndex(name)
+func (i *indexer) Close(name string) (*gabs.Container, error) {
+	service := i.client.CloseIndex(name)
 
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.MasterTimeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.MasterTimeout(i.options.Timeout)
 	}
 
-	closeResponse, err := service.Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(closeResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+	return parse(service.Do(context.Background()))
 }
 
 // Close closes an elasticsearch index
-func (esi *indexer) Open(name string) (*gabs.Container, error) {
-	service := esi.client.OpenIndex(name)
+func (i *indexer) Open(name string) (*gabs.Container, error) {
+	service := i.client.OpenIndex(name)
 
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.MasterTimeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.MasterTimeout(i.options.Timeout)
 	}
 
-	closeResponse, err := service.Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(closeResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+	return parse(service.Do(context.Background()))
 }
 
 // IndexCat retrieves information assocaited to the given index
-func (esi *indexer) IndexCat(name string) (*gabs.Container, error) {
-	ctx := context.Background()
-
-	catIndicesResponse, err := esi.client.CatIndices().Index(name).Columns(esi.columns()...).Do(ctx)
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(catIndicesResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+func (i *indexer) IndexCat(name string) (*gabs.Container, error) {
+	return parse(i.client.CatIndices().Index(name).Columns(columns...).Do(context.Background()))
 }
 
 // AliasesCat retrives information assocaited to all current index aliases
-func (esi *indexer) AliasesCat() ([]*CatAliasesResponse, error) {
-	catAliasesResponse, err := esi.client.CatAliases().Columns("*").Do(context.Background())
+func (i *indexer) AliasesCat() ([]*CatAliasesResponse, error) {
+	catAliasesResponse, err := i.client.CatAliases().Columns("*").Do(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -559,61 +368,25 @@ func (esi *indexer) AliasesCat() ([]*CatAliasesResponse, error) {
 }
 
 // AddAlias adds an alias to a given elasticsearch index
-func (esi *indexer) AddAlias(indexName string, aliasName string) (*gabs.Container, error) {
-	aliasResponse, err := elastic.NewAliasService(esi.client).Add(indexName, aliasName).Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(aliasResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+func (i *indexer) AddAlias(indexName string, aliasName string) (*gabs.Container, error) {
+	return parse(elastic.NewAliasService(i.client).Add(indexName, aliasName).Do(context.Background()))
 }
 
-func (esi *indexer) AddAliasByAction(aliasAction *elastic.AliasAddAction) (*gabs.Container, error) {
-	aliasResponse, err := elastic.NewAliasService(esi.client).Action(aliasAction).Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(aliasResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+func (i *indexer) AddAliasByAction(aliasAction *elastic.AliasAddAction) (*gabs.Container, error) {
+	return parse(elastic.NewAliasService(i.client).Action(aliasAction).Do(context.Background()))
 }
 
-func (esi *indexer) RemoveIndexFromAlias(index string, alias string) (*gabs.Container, error) {
-	aliasResponse, err := elastic.NewAliasService(esi.client).Remove(index, alias).Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(aliasResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
+func (i *indexer) RemoveIndexFromAlias(index string, alias string) (*gabs.Container, error) {
+	return parse(elastic.NewAliasService(i.client).Remove(index, alias).Do(context.Background()))
 }
 
-func (esi *indexer) AliasAddAction(alias string) *elastic.AliasAddAction {
+func (i *indexer) AliasAddAction(alias string) *elastic.AliasAddAction {
 	return elastic.NewAliasAddAction(alias)
 }
 
 // IndexStats retrieves the statistics for the given indices
-func (esi *indexer) IndexStats(indices ...string) (map[string]*gabs.Container, error) {
-	indexStatsResponse, err := esi.client.IndexStats(indices...).Do(context.Background())
+func (i *indexer) IndexStats(indices ...string) (map[string]*gabs.Container, error) {
+	indexStatsResponse, err := i.client.IndexStats(indices...).Do(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -622,13 +395,7 @@ func (esi *indexer) IndexStats(indices ...string) (map[string]*gabs.Container, e
 	mapContainer := map[string]*gabs.Container{}
 
 	for index, indexStats := range indexStatsResponse.Indices {
-		b, err := json.Marshal(indexStats)
-
-		if err != nil {
-			return nil, err
-		}
-
-		container, err := gabs.ParseJSON(b)
+		container, err := toGabsContainer(indexStats)
 
 		if err != nil {
 			return nil, err
@@ -640,11 +407,11 @@ func (esi *indexer) IndexStats(indices ...string) (map[string]*gabs.Container, e
 	return mapContainer, nil
 }
 
-func (esi *indexer) Rollover(alias, newIndex, maxAge, maxSize string, maxDocs int64, settings map[string]interface{}) (*gabs.Container, error) {
-	service := esi.client.RolloverIndex(alias)
+func (i *indexer) Rollover(alias, newIndex, maxAge, maxSize string, maxDocs int64, settings map[string]interface{}) (*gabs.Container, error) {
+	service := i.client.RolloverIndex(alias)
 
-	if esi.options != nil && len(esi.options.Timeout) > 0 {
-		service.MasterTimeout(esi.options.Timeout)
+	if i.options != nil && len(i.options.Timeout) > 0 {
+		service.MasterTimeout(i.options.Timeout)
 	}
 
 	if len(newIndex) > 0 {
@@ -667,146 +434,5 @@ func (esi *indexer) Rollover(alias, newIndex, maxAge, maxSize string, maxDocs in
 		service.Settings(settings)
 	}
 
-	response, err := service.Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := json.Marshal(response)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return gabs.ParseJSON(b)
-}
-
-func (esi *indexer) columns() []string {
-	return []string{
-		"health",
-		"status",
-		"index",
-		"uuid",
-		"pri",
-		"rep",
-		"docs.count",
-		"docs.deleted",
-		"creation.date",
-		"creation.date.string",
-		"store.size",
-		"pri.store.size",
-		"completion.size",
-		"pri.completion.size",
-		"fielddata.memory_size",
-		"pri.fielddata.memory_size",
-		"fielddata.evictions",
-		"pri.fielddata.evictions",
-		"query_cache.memory_size",
-		"pri.query_cache.memory_size",
-		"query_cache.evictions",
-		"pri.query_cache.evictions",
-		"request_cache.memory_size",
-		"pri.request_cache.memory_size",
-		"request_cache.evictions",
-		"pri.request_cache.evictions",
-		"request_cache.hit_count",
-		"pri.request_cache.hit_count",
-		"request_cache.miss_count",
-		"pri.request_cache.miss_count",
-		"flush.total_time",
-		"pri.flush.total_time",
-		"get.current",
-		"pri.get.current",
-		"get.time",
-		"pri.get.time",
-		"get.total",
-		"pri.get.total",
-		"get.exists_time",
-		"pri.get.exists_time",
-		"get.exists_total",
-		"pri.get.exists_total",
-		"get.missing_time",
-		"pri.get.missing_time",
-		"get.missing_total",
-		"pri.get.missing_total",
-		"indexing.delete_current",
-		"pri.indexing.delete_current",
-		"indexing.delete_time",
-		"pri.indexing.delete_time",
-		"indexing.delete_total",
-		"pri.indexing.delete_total",
-		"indexing.index_current",
-		"pri.indexing.index_current",
-		"indexing.index_time",
-		"pri.indexing.index_time",
-		"indexing.index_total",
-		"pri.indexing.index_total",
-		"indexing.index_failed",
-		"pri.indexing.index_failed",
-		"merges.current",
-		"pri.merges.current",
-		"merges.current_docs",
-		"pri.merges.current_docs",
-		"merges.current_size",
-		"pri.merges.current_size",
-		"merges.total",
-		"pri.merges.total",
-		"merges.total_docs",
-		"pri.merges.total_docs",
-		"merges.total_size",
-		"pri.merges.total_size",
-		"merges.total_time",
-		"pri.merges.total_time",
-		"refresh.total",
-		"pri.refresh.total",
-		"refresh.time",
-		"pri.refresh.time",
-		"refresh.listeners",
-		"pri.refresh.listeners",
-		"search.fetch_current",
-		"pri.search.fetch_current",
-		"search.fetch_time",
-		"pri.search.fetch_time",
-		"search.fetch_total",
-		"pri.search.fetch_total",
-		"search.open_contexts",
-		"pri.search.open_contexts",
-		"search.query_current",
-		"pri.search.query_current",
-		"search.query_time",
-		"pri.search.query_time",
-		"search.query_total",
-		"pri.search.query_total",
-		"search.scroll_current",
-		"pri.search.scroll_current",
-		"search.scroll_time",
-		"pri.search.scroll_time",
-		"search.scroll_total",
-		"pri.search.scroll_total",
-		"segments.count",
-		"pri.segments.count",
-		"segments.memory",
-		"pri.segments.memory",
-		"segments.index_writer_memory",
-		"pri.segments.index_writer_memory",
-		"segments.version_map_memory",
-		"pri.segments.version_map_memory",
-		"segments.fixed_bitset_memory",
-		"pri.segments.fixed_bitset_memory",
-		"warmer.current",
-		"pri.warmer.current",
-		"warmer.total",
-		"pri.warmer.total",
-		"warmer.total_time",
-		"pri.warmer.total_time",
-		"suggest.current",
-		"pri.suggest.current",
-		"suggest.time",
-		"pri.suggest.time",
-		"suggest.total",
-		"pri.suggest.total",
-		"memory.total",
-		"pri.memory.total",
-	}
+	return parse(service.Do(context.Background()))
 }

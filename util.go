@@ -3,9 +3,11 @@ package golastic
 import (
 	"encoding/json"
 
+	"github.com/Jeffail/gabs"
 	"github.com/araddon/dateparse"
 )
 
+// Connection creates an elasticsearch connection
 func Connection(context *ConnectionContext) *connection {
 	return &connection{
 		context: context,
@@ -84,4 +86,22 @@ func sliceRemove(n int, slice []string) []string {
 	}
 
 	return arr
+}
+
+func parse(response interface{}, err error) (*gabs.Container, error) {
+	if err != nil {
+		return nil, err
+	}
+
+	return toGabsContainer(response)
+}
+
+func toGabsContainer(value interface{}) (*gabs.Container, error) {
+	b, err := json.Marshal(value)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return gabs.ParseJSON(b)
 }

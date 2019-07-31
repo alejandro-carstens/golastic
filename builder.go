@@ -11,11 +11,6 @@ import (
 	"github.com/rs/xid"
 )
 
-const CONCURRENT_BATCH int = 10
-const LIMIT int = 10000
-const VALUE_AS_STRING string = "value_as_string"
-const VALUE string = "value"
-
 type builder struct {
 	queryBuilder
 	client        *elastic.Client
