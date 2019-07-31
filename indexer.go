@@ -9,6 +9,7 @@ import (
 	elastic "github.com/alejandro-carstens/elasticfork"
 )
 
+// IndexOptions are options that can be passed as elasticsearch parameters
 type IndexOptions struct {
 	WaitForCompletion  bool
 	IgnoreUnavailable  bool
@@ -142,14 +143,17 @@ func (i *indexer) Settings(names ...string) (map[string]*gabs.Container, error) 
 	return settings, nil
 }
 
+// GetTask retrieves the status of a given task by task id
 func (i *indexer) GetTask(taskId string) (*gabs.Container, error) {
 	return parse(i.client.TasksGetTask().TaskId(taskId).Do(context.Background()))
 }
 
+// GetClusterHealth returns the health status of the cluster
 func (i *indexer) GetClusterHealth(indices ...string) (*gabs.Container, error) {
 	return parse(i.client.ClusterHealth().Index(indices...).Do(context.Background()))
 }
 
+// GetIndices returns index information for the provided indices
 func (i *indexer) GetIndices(indices ...string) (*gabs.Container, error) {
 	return parse(i.client.IndexGet(indices...).Do(context.Background()))
 }
@@ -164,6 +168,7 @@ func (i *indexer) PutSettings(body string, indices ...string) (*gabs.Container, 
 	return parse(service.Do(context.Background()))
 }
 
+// CreateRepository creates a snapshot repository
 func (i *indexer) CreateRepository(repository string, repoType string, verify bool, settings map[string]interface{}) (*gabs.Container, error) {
 	service := i.client.SnapshotCreateRepository(repository).Type(repoType).Verify(verify).Settings(settings)
 
@@ -174,6 +179,7 @@ func (i *indexer) CreateRepository(repository string, repoType string, verify bo
 	return parse(service.Do(context.Background()))
 }
 
+// DeleteRepositories deletes one or many snapshot repositories
 func (i *indexer) DeleteRepositories(respositories ...string) (*gabs.Container, error) {
 	service := i.client.SnapshotDeleteRepository(respositories...)
 
@@ -184,6 +190,7 @@ func (i *indexer) DeleteRepositories(respositories ...string) (*gabs.Container, 
 	return parse(service.Do(context.Background()))
 }
 
+// Snaphsot takes a snapshot of one or more indices and stores it in the provided repository
 func (i *indexer) Snapshot(repository string, snapshot string, indices ...string) (*gabs.Container, error) {
 	service := i.client.SnapshotCreate(repository, snapshot)
 
@@ -211,6 +218,7 @@ func (i *indexer) Snapshot(repository string, snapshot string, indices ...string
 	return parse(service.BodyString(bodyJson.String()).Do(context.Background()))
 }
 
+// GetSnapshots retrives information regarding snapshots in a given repository
 func (i *indexer) GetSnapshots(respository string, snapshot string) (*gabs.Container, error) {
 	service := i.client.SnapshotGet(respository)
 
@@ -229,6 +237,7 @@ func (i *indexer) GetSnapshots(respository string, snapshot string) (*gabs.Conta
 	return parse(service.Do(context.Background()))
 }
 
+// ListSnapshots returns a list of snapshots for the given repository
 func (i *indexer) ListSnapshots(repository string) ([]string, error) {
 	response, err := i.GetSnapshots(repository, "*")
 
@@ -257,6 +266,7 @@ func (i *indexer) ListSnapshots(repository string) ([]string, error) {
 	return list, nil
 }
 
+// DeleteSnapshot deletes a snapshot for a given repository
 func (i *indexer) DeleteSnapshot(repository string, name string) (*gabs.Container, error) {
 	return parse(i.client.SnapshotDelete(repository, name).Do(context.Background()))
 }
@@ -343,28 +353,8 @@ func (i *indexer) IndexCat(name string) (*gabs.Container, error) {
 }
 
 // AliasesCat retrives information assocaited to all current index aliases
-func (i *indexer) AliasesCat() ([]*CatAliasesResponse, error) {
-	catAliasesResponse, err := i.client.CatAliases().Columns("*").Do(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	response := []*CatAliasesResponse{}
-
-	for _, row := range catAliasesResponse {
-		catAliasesResponse := new(CatAliasesResponse)
-
-		catAliasesResponse.Index = row.Index
-		catAliasesResponse.Alias = row.Alias
-		catAliasesResponse.Filter = row.Filter
-		catAliasesResponse.RoutingIndex = row.RoutingIndex
-		catAliasesResponse.RoutingSearch = row.RoutingSearch
-
-		response = append(response, catAliasesResponse)
-	}
-
-	return response, nil
+func (i *indexer) AliasesCat() (*gabs.Container, error) {
+	return parse(i.client.CatAliases().Columns("*").Do(context.Background()))
 }
 
 // AddAlias adds an alias to a given elasticsearch index
@@ -372,14 +362,17 @@ func (i *indexer) AddAlias(indexName string, aliasName string) (*gabs.Container,
 	return parse(elastic.NewAliasService(i.client).Add(indexName, aliasName).Do(context.Background()))
 }
 
+// AddAliasByAction adds an alias by *elastic.AliasAddAction
 func (i *indexer) AddAliasByAction(aliasAction *elastic.AliasAddAction) (*gabs.Container, error) {
 	return parse(elastic.NewAliasService(i.client).Action(aliasAction).Do(context.Background()))
 }
 
+// RemoveIndexFromAlias removes an index from a given alias
 func (i *indexer) RemoveIndexFromAlias(index string, alias string) (*gabs.Container, error) {
 	return parse(elastic.NewAliasService(i.client).Remove(index, alias).Do(context.Background()))
 }
 
+// AliasAddAction returns an instances of *elastic.AliasAddAction
 func (i *indexer) AliasAddAction(alias string) *elastic.AliasAddAction {
 	return elastic.NewAliasAddAction(alias)
 }
