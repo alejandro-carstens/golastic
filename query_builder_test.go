@@ -4,47 +4,47 @@ import "testing"
 
 func TestWheres(t *testing.T) {
 	builder := new(queryBuilder)
-	builder.Where("Description", "=", "value1").
-		Where("Description", "<>", "value2").
-		Where("SubjectId", ">", 1).
-		Where("SubjectId", "<", 5).
-		Where("SubjectId", ">=", 1).
-		Where("SubjectId", "<=", 4)
+	builder.Where("description", "=", "value1").
+		Where("description", "<>", "value2").
+		Where("subject_id", ">", 1).
+		Where("subject_id", "<", 5).
+		Where("subject_id", ">=", 1).
+		Where("subject_id", "<=", 4)
 
 	if got := builder.validateWhereClauses(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Where("SubjectId", "!=", 0)
+	builder.Where("subject_id", "!=", 0)
 
 	if got := builder.validateWhereClauses(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Where("SubjectId", ">", "value1")
+	builder.Where("subject_id", ">", "value1")
 
 	if got := builder.validateWhereClauses(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Where("SubjectId", "<", "value1")
+	builder.Where("subject_id", "<", "value1")
 
 	if got := builder.validateWhereClauses(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Where("SubjectId", ">=", "value1")
+	builder.Where("subject_id", ">=", "value1")
 
 	if got := builder.validateWhereClauses(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Where("SubjectId", "<=", "value1")
+	builder.Where("subject_id", "<=", "value1")
 
 	if got := builder.validateWhereClauses(); got == nil {
 		t.Error("Expected errors but got ", got)
@@ -53,46 +53,46 @@ func TestWheres(t *testing.T) {
 
 func TestFilters(t *testing.T) {
 	builder := new(queryBuilder)
-	builder.Filter("Description", "=", "value1").
-		Filter("SubjectId", ">", 1).
-		Filter("SubjectId", "<", 5).
-		Filter("SubjectId", ">=", 1).
-		Filter("SubjectId", "<=", 4)
+	builder.Filter("description", "=", "value1").
+		Filter("subject_id", ">", 1).
+		Filter("subject_id", "<", 5).
+		Filter("subject_id", ">=", 1).
+		Filter("subject_id", "<=", 4)
 
 	if got := builder.validateFilters(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Filter("SubjectId", "<>", 0)
+	builder.Filter("subject_id", "<>", 0)
 
 	if got := builder.validateFilters(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Filter("SubjectId", ">", "value1")
+	builder.Filter("subject_id", ">", "value1")
 
 	if got := builder.validateFilters(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Filter("SubjectId", "<", "value1")
+	builder.Filter("subject_id", "<", "value1")
 
 	if got := builder.validateFilters(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Filter("SubjectId", ">=", "value1")
+	builder.Filter("subject_id", ">=", "value1")
 
 	if got := builder.validateFilters(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Filter("SubjectId", "<=", "value1")
+	builder.Filter("subject_id", "<=", "value1")
 
 	if got := builder.validateFilters(); got == nil {
 		t.Error("Expected errors but got ", got)
@@ -101,29 +101,29 @@ func TestFilters(t *testing.T) {
 
 func TestMatches(t *testing.T) {
 	builder := new(queryBuilder)
-	builder.Match("Description", "=", "value1").
-		Match("Description", "<>", "value2")
+	builder.Match("description", "=", "value1").
+		Match("description", "<>", "value2")
 
 	if got := builder.validateMatchClauses(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Match("SubjectId", "!=", 0)
+	builder.Match("subject_id", "!=", 0)
 
 	if got := builder.validateMatchClauses(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Match("SubjectId", "<", 1)
+	builder.Match("subject_id", "<", 1)
 
 	if got := builder.validateMatchClauses(); got == nil {
 		t.Error("Expected errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.Match("SubjectId", ">", 1)
+	builder.Match("subject_id", ">", 1)
 
 	if got := builder.validateMatchClauses(); got == nil {
 		t.Error("Expected errors but got ", got)
@@ -135,15 +135,15 @@ func TestWhereIn(t *testing.T) {
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.WhereIn("Description", descriptions).
-		WhereIn("SubjectId", subjectIds)
+	builder.WhereIn("description", descriptions).
+		WhereIn("subject_id", subjectIds)
 
 	if got := builder.validateWhereIns(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.WhereIn("FakeDescription", descriptions)
+	builder.WhereIn("Fakedescription", descriptions)
 
 	if got := builder.validateWhereIns(); got == nil {
 		t.Error("Expected no errors but got ", got)
@@ -155,15 +155,15 @@ func TestFilterIn(t *testing.T) {
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.FilterIn("Description", descriptions).
-		FilterIn("SubjectId", subjectIds)
+	builder.FilterIn("description", descriptions).
+		FilterIn("subject_id", subjectIds)
 
 	if got := builder.validateFilterIns(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.FilterIn("FakeDescription", descriptions)
+	builder.FilterIn("Fakedescription", descriptions)
 
 	if got := builder.validateFilterIns(); got == nil {
 		t.Error("Expected no errors but got ", got)
@@ -175,15 +175,15 @@ func TestMatchIn(t *testing.T) {
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.MatchIn("Description", descriptions).
-		MatchIn("SubjectId", subjectIds)
+	builder.MatchIn("description", descriptions).
+		MatchIn("subject_id", subjectIds)
 
 	if got := builder.validateMatchIns(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.MatchIn("FakeDescription", descriptions)
+	builder.MatchIn("Fakedescription", descriptions)
 
 	if got := builder.validateMatchIns(); got == nil {
 		t.Error("Expected no errors but got ", got)
@@ -195,15 +195,15 @@ func TestWhereNotIn(t *testing.T) {
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.WhereNotIn("Description", descriptions).
-		WhereNotIn("SubjectId", subjectIds)
+	builder.WhereNotIn("description", descriptions).
+		WhereNotIn("subject_id", subjectIds)
 
 	if got := builder.validateWhereNotIns(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.WhereNotIn("FakeDescription", descriptions)
+	builder.WhereNotIn("Fakedescription", descriptions)
 
 	if got := builder.validateWhereNotIns(); got == nil {
 		t.Error("Expected no errors but got ", got)
@@ -215,15 +215,15 @@ func TestMatchNotIn(t *testing.T) {
 	var subjectIds = []interface{}{1, 2, 4}
 
 	builder := new(queryBuilder)
-	builder.MatchNotIn("Description", descriptions).
-		MatchNotIn("SubjectId", subjectIds)
+	builder.MatchNotIn("description", descriptions).
+		MatchNotIn("subject_id", subjectIds)
 
 	if got := builder.validateMatchNotIns(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
 
 	builder = new(queryBuilder)
-	builder.MatchNotIn("FakeDescription", descriptions)
+	builder.MatchNotIn("Fakedescription", descriptions)
 
 	if got := builder.validateMatchNotIns(); got == nil {
 		t.Error("Expected no errors but got ", got)
