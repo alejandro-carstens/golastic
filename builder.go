@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"math"
 
 	"github.com/Jeffail/gabs"
 	elastic "github.com/alejandro-carstens/elasticfork"
@@ -19,10 +18,10 @@ type builder struct {
 }
 
 // Find retrieves an instance of a model for the specified Id from the corresponding elasticsearch index
-func (esb *builder) Find(id string, model interface{}) error {
+func (b *builder) Find(id string, model interface{}) error {
 	ctx := context.Background()
 
-	response, err := esb.client.Get().Index(esb.index).Id(id).Do(ctx)
+	response, err := b.client.Get().Index(b.index).Id(id).Do(ctx)
 
 	if err != nil {
 		return err
@@ -42,47 +41,47 @@ func (esb *builder) Find(id string, model interface{}) error {
 }
 
 // Insert inserts one or multiple documents into the corresponding elasticsearch index
-func (esb *builder) Insert(items ...interface{}) (*WriteResponse, error) {
-	batchClient := esb.client.Bulk()
+func (b *builder) Insert(items ...interface{}) (*WriteResponse, error) {
+	batchClient := b.client.Bulk()
 
 	for _, item := range items {
-		req := elastic.NewBulkIndexRequest().Index(esb.index).Id(xid.New().String()).OpType("create")
+		req := elastic.NewBulkIndexRequest().Index(b.index).Id(xid.New().String()).OpType("create")
 
 		batchClient = batchClient.Add(req.Doc(item))
 	}
 
-	return esb.processBulkRequest(batchClient, len(items))
+	return b.processBulkRequest(batchClient, len(items))
 }
 
 // Delete deletes one or multiple documents by id from the corresponding elasticsearch index
-func (esb *builder) Delete(ids ...string) (*WriteResponse, error) {
-	batchClient := esb.client.Bulk()
+func (b *builder) Delete(ids ...string) (*WriteResponse, error) {
+	batchClient := b.client.Bulk()
 
 	for _, id := range ids {
-		req := elastic.NewBulkDeleteRequest().Index(esb.index).Id(id)
+		req := elastic.NewBulkDeleteRequest().Index(b.index).Id(id)
 
 		batchClient = batchClient.Add(req)
 	}
 
-	return esb.processBulkRequest(batchClient, len(ids))
+	return b.processBulkRequest(batchClient, len(ids))
 }
 
 // Update updates one or multiple documents from the corresponding elasticsearch index
-func (esb *builder) Update(items ...Identifiable) (*WriteResponse, error) {
-	batchClient := esb.client.Bulk()
+func (b *builder) Update(items ...Identifiable) (*WriteResponse, error) {
+	batchClient := b.client.Bulk()
 
 	for _, item := range items {
-		req := elastic.NewBulkUpdateRequest().Index(esb.index).Id(item.ID())
+		req := elastic.NewBulkUpdateRequest().Index(b.index).Id(item.ID())
 
 		batchClient = batchClient.Add(req.Doc(item))
 	}
 
-	return esb.processBulkRequest(batchClient, len(items))
+	return b.processBulkRequest(batchClient, len(items))
 }
 
 // Aggregate retrieves all the queries aggregations
-func (esb *builder) Aggregate() (map[string]*AggregationResponse, error) {
-	searchService, err := esb.build()
+func (b *builder) Aggregate() (map[string]*AggregationResponse, error) {
+	searchService, err := b.build()
 
 	if err != nil {
 		return nil, err
@@ -98,12 +97,12 @@ func (esb *builder) Aggregate() (map[string]*AggregationResponse, error) {
 		return nil, errors.New("No aggregations returned")
 	}
 
-	return esb.processAggregations(response.Aggregations)
+	return b.processAggregations(response.Aggregations)
 }
 
 // Get executes the search query and retrieves the results
-func (esb *builder) Get(items interface{}) error {
-	searchService, err := esb.build()
+func (b *builder) Get(items interface{}) error {
+	searchService, err := b.build()
 
 	if err != nil {
 		return err
@@ -115,7 +114,7 @@ func (esb *builder) Get(items interface{}) error {
 		return err
 	}
 
-	sources := esb.processGetResults(response.Hits.Hits)
+	sources := b.processGetResults(response.Hits.Hits)
 
 	results, err := toJson(sources)
 
@@ -127,14 +126,14 @@ func (esb *builder) Get(items interface{}) error {
 }
 
 // Execute executes an ubdate by query
-func (esb *builder) Execute(params map[string]interface{}) (*WriteByQueryResponse, error) {
-	query, err := esb.updateByQuery()
+func (b *builder) Execute(params map[string]interface{}) (*WriteByQueryResponse, error) {
+	query, err := b.updateByQuery()
 
 	if err != nil {
 		return nil, err
 	}
 
-	script := esb.buildScript(params)
+	script := b.buildScript(params)
 
 	updateResponse, err := query.Script(script).Refresh("true").Do(context.Background())
 
@@ -158,10 +157,10 @@ func (esb *builder) Execute(params map[string]interface{}) (*WriteByQueryRespons
 }
 
 // Destroy executes a delete by query
-func (esb *builder) Destroy() (*WriteByQueryResponse, error) {
+func (b *builder) Destroy() (*WriteByQueryResponse, error) {
 	ctx := context.Background()
 
-	query := esb.client.DeleteByQuery(esb.index).ProceedOnVersionConflict().Query(esb.query())
+	query := b.client.DeleteByQuery(b.index).ProceedOnVersionConflict().Query(b.query())
 
 	destroyResponse, err := query.Refresh("true").Do(ctx)
 
@@ -185,27 +184,27 @@ func (esb *builder) Destroy() (*WriteByQueryResponse, error) {
 }
 
 // Count retrieves the number of elements that match the query
-func (esb *builder) Count() (int64, error) {
-	if err := esb.validateMustClauses(); err != nil {
+func (b *builder) Count() (int64, error) {
+	if err := b.validateMustClauses(); err != nil {
 		return 0, err
 	}
 
-	return esb.client.Count(esb.index).Query(esb.query()).Pretty(true).Do(context.Background())
+	return b.client.Count(b.index).Query(b.query()).Pretty(true).Do(context.Background())
 }
 
 // Cursor paginates based on searching after the last returned sortValues
-func (esb *builder) Cursor(offset int, sortValues []interface{}, items interface{}) ([]interface{}, error) {
+func (b *builder) Cursor(offset int, sortValues []interface{}, items interface{}) ([]interface{}, error) {
 	if offset == 0 || offset > LIMIT {
 		return nil, errors.New("Offset must be greater than 0 and lesser or equal to 10000")
 	}
 
-	if esb.sorts == nil {
+	if b.sorts == nil {
 		return nil, errors.New("Please specify at least a sort field")
 	}
 
-	esb.Limit(offset)
+	b.Limit(offset)
 
-	searchService, err := esb.build()
+	searchService, err := b.build()
 
 	if err != nil {
 		return nil, err
@@ -221,7 +220,7 @@ func (esb *builder) Cursor(offset int, sortValues []interface{}, items interface
 		return nil, err
 	}
 
-	sortResponse, results, err := esb.processCursorResults(response.Hits.Hits)
+	sortResponse, results, err := b.processCursorResults(response.Hits.Hits)
 
 	if err != nil {
 		return nil, err
@@ -230,7 +229,7 @@ func (esb *builder) Cursor(offset int, sortValues []interface{}, items interface
 	return sortResponse, json.Unmarshal([]byte(results), items)
 }
 
-func (esb *builder) MinMax(field string, isDateField bool) (*MinMaxResponse, error) {
+func (b *builder) MinMax(field string, isDateField bool) (*MinMaxResponse, error) {
 	rawQuery := `{
 		"aggs": {
 		  "min": {
@@ -246,24 +245,25 @@ func (esb *builder) MinMax(field string, isDateField bool) (*MinMaxResponse, err
 		}
 	  }`
 
-	result, err := esb.client.Search().Index(esb.index).Source(rawQuery).Size(0).Do(context.Background())
+	result, err := b.client.Search().Index(b.index).Source(rawQuery).Size(0).Do(context.Background())
 
 	if err != nil {
 		return nil, err
 	}
 
-	return esb.parseMinMaxResponse(result.Aggregations, isDateField)
+	return b.parseMinMaxResponse(result.Aggregations, isDateField)
 }
 
-func (esb *builder) RawQuery(rawQuery string) elastic.Query {
+func (b *builder) RawQuery(rawQuery string) elastic.Query {
 	return elastic.RawStringQuery(rawQuery)
 }
 
-func (esb *builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}, string, error) {
+func (b *builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}, string, error) {
 	sources := []*json.RawMessage{}
 	sortResponse := []interface{}{}
-	chunkSize := (len(hits) + CONCURRENT_BATCH - 1) / CONCURRENT_BATCH
-	chunkCount := int(math.Ceil(float64(len(hits)) / float64(chunkSize)))
+
+	chunkSize := calculateChunkSize(len(hits))
+	chunkCount := calculateChunkCount(len(hits), chunkSize)
 	channels := make(chan map[int][]*json.RawMessage, chunkCount)
 
 	for i := 0; i < len(hits); i += chunkSize {
@@ -275,7 +275,7 @@ func (esb *builder) processCursorResults(hits []*elastic.SearchHit) ([]interface
 			sortResponse = hits[len(hits)-1].Sort
 		}
 
-		go esb.processChunks(channels, hits[i:end], i)
+		go b.processChunks(channels, hits[i:end], i)
 	}
 
 	sourceMaps := map[int][]*json.RawMessage{}
@@ -295,15 +295,15 @@ func (esb *builder) processCursorResults(hits []*elastic.SearchHit) ([]interface
 	return sortResponse, results, err
 }
 
-func (esb *builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMessage {
+func (b *builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMessage {
 	sources := []*json.RawMessage{}
 
 	if len(hits) == 0 {
 		return sources
 	}
 
-	chunkSize := (len(hits) + CONCURRENT_BATCH - 1) / CONCURRENT_BATCH
-	chunkCount := int(math.Ceil(float64(len(hits)) / float64(chunkSize)))
+	chunkSize := calculateChunkSize(len(hits))
+	chunkCount := calculateChunkCount(len(hits), chunkSize)
 	channels := make(chan map[int][]*json.RawMessage, chunkCount)
 
 	for i := 0; i < len(hits); i += chunkSize {
@@ -313,7 +313,7 @@ func (esb *builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMess
 			end = len(hits)
 		}
 
-		go esb.processChunks(channels, hits[i:end], i)
+		go b.processChunks(channels, hits[i:end], i)
 	}
 
 	sourceMaps := map[int][]*json.RawMessage{}
@@ -331,7 +331,7 @@ func (esb *builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMess
 	return sources
 }
 
-func (esb *builder) processChunks(channels chan map[int][]*json.RawMessage, hits []*elastic.SearchHit, chunk int) {
+func (b *builder) processChunks(channels chan map[int][]*json.RawMessage, hits []*elastic.SearchHit, chunk int) {
 	sources := []*json.RawMessage{}
 	result := map[int][]*json.RawMessage{}
 
@@ -344,7 +344,7 @@ func (esb *builder) processChunks(channels chan map[int][]*json.RawMessage, hits
 	channels <- result
 }
 
-func (esb *builder) processBulkRequest(batchClient *elastic.BulkService, num int) (*WriteResponse, error) {
+func (b *builder) processBulkRequest(batchClient *elastic.BulkService, num int) (*WriteResponse, error) {
 	if batchClient.NumberOfActions() != num {
 		return nil, errors.New("The number of actions does not match the number of arguments.")
 	}
@@ -374,7 +374,7 @@ func (esb *builder) processBulkRequest(batchClient *elastic.BulkService, num int
 	return response, nil
 }
 
-func (esb *builder) processAggregations(aggregations elastic.Aggregations) (AggregationResponses, error) {
+func (b *builder) processAggregations(aggregations elastic.Aggregations) (AggregationResponses, error) {
 	aggregationResponse := make(AggregationResponses)
 
 	for field, source := range aggregations {
@@ -396,37 +396,32 @@ func (esb *builder) processAggregations(aggregations elastic.Aggregations) (Aggr
 			return nil, err
 		}
 
-		docCountErrorUpperBound, _ := jsonParsed.Path("doc_count_error_upper_bound").Data().(float64)
-		sumOtherDocCount, _ := jsonParsed.Path("sum_other_doc_count").Data().(float64)
-
-		items, err := esb.processAggregationBuckets(buckets)
+		items, err := b.processAggregationBuckets(buckets)
 
 		if err != nil {
 			return nil, err
 		}
 
-		aggregation := new(AggregationResponse)
-		aggregation.DocCountErrorUpperBound = int(docCountErrorUpperBound)
-		aggregation.SumOtherDocCount = int(sumOtherDocCount)
+		docCountErrorUpperBound, _ := jsonParsed.Path("doc_count_error_upper_bound").Data().(float64)
+		sumOtherDocCount, _ := jsonParsed.Path("sum_other_doc_count").Data().(float64)
 
-		if len(items) > 0 {
-			aggregation.Buckets = items
+		aggregationResponse[field] = &AggregationResponse{
+			DocCountErrorUpperBound: int(docCountErrorUpperBound),
+			SumOtherDocCount:        int(sumOtherDocCount),
+			Buckets:                 items,
 		}
-
-		aggregationResponse[field] = aggregation
 	}
 
 	return aggregationResponse, nil
 }
 
-func (esb *builder) processAggregationBuckets(buckets []*gabs.Container) (AggregationBuckets, error) {
+func (b *builder) processAggregationBuckets(buckets []*gabs.Container) (AggregationBuckets, error) {
 	items := AggregationBuckets{}
 
 	for _, bucket := range buckets {
-		aggregationBucket := new(AggregationBucket)
 		subAggregations := AggregationResponses{}
 
-		for _, field := range sliceRemove(0, esb.groupBy.Fields) {
+		for _, field := range sliceRemove(0, b.groupBy.Fields) {
 			data, err := json.Marshal(bucket.Path(field).Data())
 
 			if err != nil {
@@ -444,25 +439,25 @@ func (esb *builder) processAggregationBuckets(buckets []*gabs.Container) (Aggreg
 
 		docCount, _ := bucket.Path("doc_count").Data().(float64)
 
-		aggregationBucket.DocCount = int(docCount)
-		aggregationBucket.Items = subAggregations
-		aggregationBucket.Key = bucket.Path("key").Data()
-
-		items = append(items, aggregationBucket)
+		items = append(items, &AggregationBucket{
+			DocCount: int(docCount),
+			Items:    subAggregations,
+			Key:      bucket.Path("key").Data(),
+		})
 	}
 
 	return items, nil
 }
 
-func (esb *builder) updateByQuery() (*elastic.UpdateByQueryService, error) {
-	if err := esb.validateMustClauses(); err != nil {
+func (b *builder) updateByQuery() (*elastic.UpdateByQueryService, error) {
+	if err := b.validateMustClauses(); err != nil {
 		return nil, err
 	}
 
-	return esb.client.UpdateByQuery(esb.index).ProceedOnVersionConflict().Query(esb.query()), nil
+	return b.client.UpdateByQuery(b.index).ProceedOnVersionConflict().Query(b.query()), nil
 }
 
-func (esb *builder) buildScript(params map[string]interface{}) *elastic.Script {
+func (b *builder) buildScript(params map[string]interface{}) *elastic.Script {
 	script := ""
 
 	for field, _ := range params {
@@ -472,73 +467,73 @@ func (esb *builder) buildScript(params map[string]interface{}) *elastic.Script {
 	return elastic.NewScript(script).Lang("painless").Params(params)
 }
 
-func (esb *builder) build() (*elastic.SearchService, error) {
-	query := esb.client.Search().Index(esb.index)
+func (b *builder) build() (*elastic.SearchService, error) {
+	query := b.client.Search().Index(b.index)
 
-	if err := esb.validateMustClauses(); err != nil {
+	if err := b.validateMustClauses(); err != nil {
 		return nil, err
 	}
 
-	query = query.Query(esb.query())
+	query = query.Query(b.query())
 
-	if esb.sorts != nil {
-		for _, sort := range esb.sorts {
+	if b.sorts != nil {
+		for _, sort := range b.sorts {
 			query = query.Sort(sort.Field, sort.Order)
 		}
 	}
 
-	if esb.limit != nil {
-		if err := esb.validateLimit(); err != nil {
+	if b.limit != nil {
+		if err := b.validateLimit(); err != nil {
 			return nil, err
 		}
 
-		query = query.Size(esb.limit.Limit)
+		query = query.Size(b.limit.Limit)
 	}
 
-	if esb.from != nil {
-		if err := esb.validateFrom(); err != nil {
+	if b.from != nil {
+		if err := b.validateFrom(); err != nil {
 			return nil, err
 		}
 
-		query = query.From(esb.from.From)
+		query = query.From(b.from.From)
 	}
 
-	if esb.groupBy != nil {
-		query = esb.processGroupBy(esb.groupBy.Fields, query)
+	if b.groupBy != nil {
+		query = b.processGroupBy(b.groupBy.Fields, query)
 	}
 
 	return query, nil
 }
 
-func (esb *builder) query() *elastic.BoolQuery {
+func (b *builder) query() *elastic.BoolQuery {
 	wheres := make(chan []elastic.Query)
 	notWheres := make(chan []elastic.Query)
 	matches := make(chan []elastic.Query)
 	notMatches := make(chan []elastic.Query)
 	filters := make(chan []elastic.Query)
 
-	go esb.processWheres(wheres, notWheres)
-	go esb.processMatches(matches, notMatches)
-	go esb.processFilters(filters)
+	go b.processWheres(wheres, notWheres)
+	go b.processMatches(matches, notMatches)
+	go b.processFilters(filters)
 
 	q := elastic.NewBoolQuery()
 
 	return q.Must(<-wheres...).MustNot(<-notWheres...).Must(<-matches...).MustNot(<-notMatches...).Filter(<-filters...)
 }
 
-func (esb *builder) processWheres(wheres chan []elastic.Query, notWheres chan []elastic.Query) {
+func (b *builder) processWheres(wheres chan []elastic.Query, notWheres chan []elastic.Query) {
 	var terms []elastic.Query
 	var notTerms []elastic.Query
 
-	for _, whereIn := range esb.whereIns {
+	for _, whereIn := range b.whereIns {
 		terms = append(terms, elastic.NewTermsQuery(whereIn.Field, whereIn.Values...))
 	}
 
-	for _, whereNotIn := range esb.whereNotIns {
+	for _, whereNotIn := range b.whereNotIns {
 		notTerms = append(notTerms, elastic.NewTermsQuery(whereNotIn.Field, whereNotIn.Values...))
 	}
 
-	for _, where := range esb.wheres {
+	for _, where := range b.wheres {
 		if where.Operand == "=" {
 			terms = append(terms, elastic.NewTermQuery(where.Field, where.Value))
 			continue
@@ -571,14 +566,14 @@ func (esb *builder) processWheres(wheres chan []elastic.Query, notWheres chan []
 	notWheres <- notTerms
 }
 
-func (esb *builder) processFilters(filters chan []elastic.Query) {
+func (b *builder) processFilters(filters chan []elastic.Query) {
 	var terms []elastic.Query
 
-	for _, filterIn := range esb.filterIns {
+	for _, filterIn := range b.filterIns {
 		terms = append(terms, elastic.NewTermsQuery(filterIn.Field, filterIn.Values...))
 	}
 
-	for _, filter := range esb.filters {
+	for _, filter := range b.filters {
 		if filter.Operand == "=" {
 			terms = append(terms, elastic.NewTermQuery(filter.Field, filter.Value))
 			continue
@@ -605,23 +600,23 @@ func (esb *builder) processFilters(filters chan []elastic.Query) {
 	filters <- terms
 }
 
-func (esb *builder) processMatches(matches chan []elastic.Query, notMatches chan []elastic.Query) {
+func (b *builder) processMatches(matches chan []elastic.Query, notMatches chan []elastic.Query) {
 	var terms []elastic.Query
 	var notTerms []elastic.Query
 
-	for _, matchIn := range esb.matchIns {
+	for _, matchIn := range b.matchIns {
 		for _, value := range matchIn.Values {
 			terms = append(terms, elastic.NewMatchQuery(matchIn.Field, value))
 		}
 	}
 
-	for _, matchNotIn := range esb.matchNotIns {
+	for _, matchNotIn := range b.matchNotIns {
 		for _, value := range matchNotIn.Values {
 			notTerms = append(notTerms, elastic.NewMatchQuery(matchNotIn.Field, value))
 		}
 	}
 
-	for _, match := range esb.matches {
+	for _, match := range b.matches {
 		if match.Operand == "=" {
 			terms = append(terms, elastic.NewMatchQuery(match.Field, match.Value))
 		}
@@ -635,7 +630,7 @@ func (esb *builder) processMatches(matches chan []elastic.Query, notMatches chan
 	notMatches <- notTerms
 }
 
-func (esb *builder) processGroupBy(fields []string, query *elastic.SearchService) *elastic.SearchService {
+func (b *builder) processGroupBy(fields []string, query *elastic.SearchService) *elastic.SearchService {
 	name := fields[0]
 
 	aggr := elastic.NewTermsAggregation().Field(name)
@@ -647,7 +642,7 @@ func (esb *builder) processGroupBy(fields []string, query *elastic.SearchService
 	return query.Aggregation(name, aggr)
 }
 
-func (esb *builder) parseMinMaxResponse(aggs elastic.Aggregations, isDateField bool) (*MinMaxResponse, error) {
+func (b *builder) parseMinMaxResponse(aggs elastic.Aggregations, isDateField bool) (*MinMaxResponse, error) {
 	response := &MinMaxResponse{}
 
 	check := VALUE

@@ -2,6 +2,7 @@ package golastic
 
 import (
 	"encoding/json"
+	"math"
 
 	"github.com/Jeffail/gabs"
 	"github.com/araddon/dateparse"
@@ -104,4 +105,12 @@ func toGabsContainer(value interface{}) (*gabs.Container, error) {
 	}
 
 	return gabs.ParseJSON(b)
+}
+
+func calculateChunkSize(length int) int {
+	return (length + CONCURRENT_BATCH - 1) / CONCURRENT_BATCH
+}
+
+func calculateChunkCount(length int, chunkSize int) int {
+	return int(math.Ceil(float64(length) / float64(chunkSize)))
 }
