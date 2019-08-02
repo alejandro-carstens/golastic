@@ -8,6 +8,7 @@ import (
 	elastic "github.com/alejandro-carstens/elasticfork"
 )
 
+// ConnectionContext sets the connection configuration
 type ConnectionContext struct {
 	Urls                []string
 	Sniff               bool

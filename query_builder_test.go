@@ -141,13 +141,6 @@ func TestWhereIn(t *testing.T) {
 	if got := builder.validateWhereIns(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
-
-	builder = new(queryBuilder)
-	builder.WhereIn("Fakedescription", descriptions)
-
-	if got := builder.validateWhereIns(); got == nil {
-		t.Error("Expected no errors but got ", got)
-	}
 }
 
 func TestFilterIn(t *testing.T) {
@@ -159,13 +152,6 @@ func TestFilterIn(t *testing.T) {
 		FilterIn("subject_id", subjectIds)
 
 	if got := builder.validateFilterIns(); got != nil {
-		t.Error("Expected no errors but got ", got)
-	}
-
-	builder = new(queryBuilder)
-	builder.FilterIn("Fakedescription", descriptions)
-
-	if got := builder.validateFilterIns(); got == nil {
 		t.Error("Expected no errors but got ", got)
 	}
 }
@@ -181,13 +167,6 @@ func TestMatchIn(t *testing.T) {
 	if got := builder.validateMatchIns(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
-
-	builder = new(queryBuilder)
-	builder.MatchIn("Fakedescription", descriptions)
-
-	if got := builder.validateMatchIns(); got == nil {
-		t.Error("Expected no errors but got ", got)
-	}
 }
 
 func TestWhereNotIn(t *testing.T) {
@@ -201,13 +180,6 @@ func TestWhereNotIn(t *testing.T) {
 	if got := builder.validateWhereNotIns(); got != nil {
 		t.Error("Expected no errors but got ", got)
 	}
-
-	builder = new(queryBuilder)
-	builder.WhereNotIn("Fakedescription", descriptions)
-
-	if got := builder.validateWhereNotIns(); got == nil {
-		t.Error("Expected no errors but got ", got)
-	}
 }
 
 func TestMatchNotIn(t *testing.T) {
@@ -219,13 +191,6 @@ func TestMatchNotIn(t *testing.T) {
 		MatchNotIn("subject_id", subjectIds)
 
 	if got := builder.validateMatchNotIns(); got != nil {
-		t.Error("Expected no errors but got ", got)
-	}
-
-	builder = new(queryBuilder)
-	builder.MatchNotIn("Fakedescription", descriptions)
-
-	if got := builder.validateMatchNotIns(); got == nil {
 		t.Error("Expected no errors but got ", got)
 	}
 }

@@ -28,7 +28,7 @@ services:
       - "ELASTIC_USERNAME=${ELASTIC_USERNAME}"
       - "ELASTIC_PASSWORD=${ELASTIC_PASSWORD}"
     volumes:
-      - .:/app/workspace/src/golastic
+      - .:/go/src/golastic
     networks:
       - esnet
 

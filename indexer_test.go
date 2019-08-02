@@ -47,9 +47,10 @@ func indexConfig() string {
 func bootConnection() (*connection, error) {
 	connection := Connection(
 		&ConnectionContext{
-			Urls:     []string{os.Getenv("ELASTICSEARCH_URI")},
-			Password: os.Getenv("ELASTICSEARCH_PASSWORD"),
-			Username: os.Getenv("ELASTICSEARCH_USERNAME"),
+			Urls:                []string{os.Getenv("ELASTICSEARCH_URI")},
+			Password:            os.Getenv("ELASTICSEARCH_PASSWORD"),
+			Username:            os.Getenv("ELASTICSEARCH_USERNAME"),
+			HealthCheckInterval: 30,
 		},
 	)
 

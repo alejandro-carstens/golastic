@@ -15,7 +15,7 @@ func TestInsert(t *testing.T) {
 		t.Error("Expected no error got ", err)
 	}
 
-	examples := []*Example{}
+	examples := []interface{}{}
 
 	for i := 1; i < 4; i++ {
 		example := new(Example)
@@ -27,7 +27,7 @@ func TestInsert(t *testing.T) {
 		examples = append(examples, example)
 	}
 
-	res, err := connection.Builder("example").Insert(examples)
+	res, err := connection.Builder("example").Insert(examples...)
 
 	if err != nil {
 		t.Error("Expected no error on insert ", err)
@@ -71,7 +71,7 @@ func TestUpdate(t *testing.T) {
 	assert.Equal(t, "_doc", response.First().Type)
 	assert.Equal(t, "updated", response.First().Result)
 	assert.Equal(t, 2, response.First().Version)
-	assert.Equal(t, 1, response.First().Shards.Total)
+	assert.Equal(t, 2, response.First().Shards.Total)
 	assert.Equal(t, 1, response.First().Shards.Successful)
 	assert.Equal(t, 0, response.First().Shards.Failed)
 	assert.Equal(t, 1, response.First().PrimaryTerm)
@@ -141,7 +141,7 @@ func TestDelete(t *testing.T) {
 	assert.Equal(t, "_doc", response.First().Type)
 	assert.Equal(t, "deleted", response.First().Result)
 	assert.Equal(t, 2, response.First().Version)
-	assert.Equal(t, 1, response.First().Shards.Total)
+	assert.Equal(t, 2, response.First().Shards.Total)
 	assert.Equal(t, 1, response.First().Shards.Successful)
 	assert.Equal(t, 0, response.First().Shards.Failed)
 	assert.Equal(t, 1, response.First().PrimaryTerm)
@@ -258,11 +258,9 @@ func TestGetWheres(t *testing.T) {
 		t.Error("Expected no error got ", err)
 	}
 
-	models := getModelsToSeed(10)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(10)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -273,10 +271,10 @@ func TestGetWheres(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	builder.Where("Id", "<>", 3).
-		Where("SubjectId", "<", 2).
-		WhereNotIn("Description", notInDescriptions).
-		Where("Description", "<>", "Description 5")
+	builder.Where("id", "<>", 3).
+		Where("subject_id", "<", 2).
+		WhereNotIn("description", notInDescriptions).
+		Where("description", "<>", "Description 5")
 
 	var response []Example
 
@@ -301,21 +299,15 @@ func TestGetFilters(t *testing.T) {
 		t.Error("Expected no error got ", err)
 	}
 
-	models := getModelsToSeed(10)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(10)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	inSubjectIds := []interface{}{
-		1,
-	}
-
-	builder.Where("Id", "<>", 3).FilterIn("SubjectId", inSubjectIds).Filter("Id", "<", 2)
+	builder.Where("id", "<>", 3).FilterIn("subject_id", []interface{}{1}).Filter("id", "<", 2)
 
 	var response []Example
 
@@ -340,24 +332,20 @@ func TestGetMatches(t *testing.T) {
 		t.Error("Expected no error got ", err)
 	}
 
-	models := getModelsToSeed(10)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(10)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	notInIds := []interface{}{
-		2,
-	}
+	notInIds := []interface{}{2}
 
-	builder.MatchNotIn("Id", notInIds).
-		MatchIn("SubjectId", notInIds).
-		Match("Description", "<>", "Description 9").
-		Match("Description", "=", "Description 10")
+	builder.MatchNotIn("id", notInIds).
+		MatchIn("subject_id", notInIds).
+		Match("description", "<>", "Description 9").
+		Match("description", "=", "Description 10")
 
 	var response []Example
 
@@ -382,11 +370,9 @@ func TestGetLimitAndSort(t *testing.T) {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	models := getModelsToSeed(10)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(10)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -399,7 +385,7 @@ func TestGetLimitAndSort(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	builder.WhereIn("Description", inDescriptions).OrderBy("Id", false).Limit(2)
+	builder.WhereIn("description", inDescriptions).OrderBy("id", false).Limit(2)
 
 	var response []Example
 
@@ -427,11 +413,9 @@ func TestAggregationGroupBy(t *testing.T) {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	models := getModelsToSeed(11)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(11)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -445,7 +429,7 @@ func TestAggregationGroupBy(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	builder.WhereIn("Description", inDescriptions).GroupBy("SubjectId")
+	builder.WhereIn("description", inDescriptions).GroupBy("subject_id")
 
 	response, err := builder.Aggregate()
 
@@ -453,7 +437,7 @@ func TestAggregationGroupBy(t *testing.T) {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	aggrecation := response["SubjectId"]
+	aggrecation := response["subject_id"]
 
 	assert.Equal(t, 1, int(aggrecation.Buckets[0].Key.(float64)))
 	assert.Equal(t, 3, aggrecation.Buckets[0].DocCount)
@@ -472,25 +456,19 @@ func TestAggregationGroupByMany(t *testing.T) {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	models := getModelsToSeed(11)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(11)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	inDescriptions := []interface{}{
-		"Description 4",
-		"Description 8",
-		"Description 11",
-	}
+	inDescriptions := []interface{}{"Description 4", "Description 8", "Description 11"}
 
 	time.Sleep(1 * time.Second)
 
-	fields := []string{"Id", "SubjectId", "Description"}
+	fields := []string{"id", "subject_id", "description"}
 
-	builder.FilterIn("Description", inDescriptions).GroupBy(fields...)
+	builder.FilterIn("description", inDescriptions).GroupBy(fields...)
 
 	response, err := builder.Aggregate()
 
@@ -498,20 +476,20 @@ func TestAggregationGroupByMany(t *testing.T) {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	aggregation := response["Id"]
+	aggregation := response["id"]
 
 	assert.Equal(t, 1, aggregation.Buckets[0].DocCount)
 	assert.Equal(t, "11", aggregation.Buckets[0].Key.(string))
-	assert.Equal(t, "Description 11", aggregation.Buckets[0].Items["Description"].Buckets[0].Key.(string))
-	assert.Equal(t, 1, int(aggregation.Buckets[0].Items["SubjectId"].Buckets[0].Key.(float64)))
+	assert.Equal(t, "Description 11", aggregation.Buckets[0].Items["description"].Buckets[0].Key.(string))
+	assert.Equal(t, 1, int(aggregation.Buckets[0].Items["subject_id"].Buckets[0].Key.(float64)))
 	assert.Equal(t, 1, aggregation.Buckets[1].DocCount)
 	assert.Equal(t, "4", aggregation.Buckets[1].Key.(string))
-	assert.Equal(t, "Description 4", aggregation.Buckets[1].Items["Description"].Buckets[0].Key.(string))
-	assert.Equal(t, 1, int(aggregation.Buckets[1].Items["SubjectId"].Buckets[0].Key.(float64)))
+	assert.Equal(t, "Description 4", aggregation.Buckets[1].Items["description"].Buckets[0].Key.(string))
+	assert.Equal(t, 1, int(aggregation.Buckets[1].Items["subject_id"].Buckets[0].Key.(float64)))
 	assert.Equal(t, 1, aggregation.Buckets[2].DocCount)
 	assert.Equal(t, "8", aggregation.Buckets[2].Key.(string))
-	assert.Equal(t, "Description 8", aggregation.Buckets[2].Items["Description"].Buckets[0].Key.(string))
-	assert.Equal(t, 2, int(aggregation.Buckets[2].Items["SubjectId"].Buckets[0].Key.(float64)))
+	assert.Equal(t, "Description 8", aggregation.Buckets[2].Items["description"].Buckets[0].Key.(string))
+	assert.Equal(t, 2, int(aggregation.Buckets[2].Items["subject_id"].Buckets[0].Key.(float64)))
 
 	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
@@ -525,23 +503,17 @@ func TestCount(t *testing.T) {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	models := getModelsToSeed(11)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(11)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	inDescriptions := []interface{}{
-		"Description 4",
-		"Description 8",
-		"Description 11",
-	}
+	inDescriptions := []interface{}{"Description 4", "Description 8", "Description 11"}
 
 	time.Sleep(1 * time.Second)
 
-	builder.FilterIn("Description", inDescriptions)
+	builder.FilterIn("description", inDescriptions)
 
 	response, err := builder.Count()
 
@@ -563,17 +535,15 @@ func TestCursor(t *testing.T) {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	models := getModelsToSeed(15)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(15)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	builder.Filter("SubjectId", "=", 1).OrderBy("Id", true).OrderBy("Description", true)
+	builder.Filter("subject_id", "=", 1).OrderBy("id", true).OrderBy("description", true)
 
 	var response []Example
 
@@ -608,17 +578,15 @@ func TestFromGet(t *testing.T) {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	models := getModelsToSeed(15)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(15)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	builder.Filter("SubjectId", "=", 1).OrderBy("Id", true).Limit(5).From(5)
+	builder.Filter("subject_id", "=", 1).OrderBy("id", true).Limit(5).From(5)
 
 	response := []Example{}
 
@@ -645,17 +613,15 @@ func TestMinMax(t *testing.T) {
 		t.Error("Expected no error on insert:", err)
 	}
 
-	models := getModelsToSeed(15)
-
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(models); err != nil {
+	if _, err = builder.Insert(getModelsToSeedAsInterface(15)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	result, err := builder.MinMax("SubjectId", false)
+	result, err := builder.MinMax("subject_id", false)
 
 	if err != nil {
 		t.Error("Expected no error on aggs query:", err)
@@ -722,6 +688,16 @@ func getModelsToSeed(num int) []Identifiable {
 			model.SubjectId = 1
 		}
 
+		models = append(models, model)
+	}
+
+	return models
+}
+
+func getModelsToSeedAsInterface(num int) []interface{} {
+	models := []interface{}{}
+
+	for _, model := range getModelsToSeed(num) {
 		models = append(models, model)
 	}
 

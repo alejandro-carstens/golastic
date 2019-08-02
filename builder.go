@@ -7,7 +7,6 @@ import (
 
 	"github.com/Jeffail/gabs"
 	elastic "github.com/alejandro-carstens/elasticfork"
-	"github.com/rs/xid"
 )
 
 type builder struct {
@@ -18,7 +17,7 @@ type builder struct {
 }
 
 // Find retrieves an instance of a model for the specified Id from the corresponding elasticsearch index
-func (b *builder) Find(id string, model interface{}) error {
+func (b *builder) Find(id string, item interface{}) error {
 	ctx := context.Background()
 
 	response, err := b.client.Get().Index(b.index).Id(id).Do(ctx)
@@ -28,7 +27,7 @@ func (b *builder) Find(id string, model interface{}) error {
 	}
 
 	if response.Found == false {
-		return errors.New("No document found for model with id:" + id)
+		return errors.New("No document found for item with id:" + id)
 	}
 
 	data, err := response.Source.MarshalJSON()
@@ -37,20 +36,26 @@ func (b *builder) Find(id string, model interface{}) error {
 		return err
 	}
 
-	return json.Unmarshal(data, model)
+	return json.Unmarshal(data, item)
 }
 
 // Insert inserts one or multiple documents into the corresponding elasticsearch index
 func (b *builder) Insert(items ...interface{}) (*WriteResponse, error) {
-	batchClient := b.client.Bulk()
+	bulkClient := b.client.Bulk()
 
 	for _, item := range items {
-		req := elastic.NewBulkIndexRequest().Index(b.index).Id(xid.New().String()).OpType("create")
+		doc, err := toGabsContainer(item)
 
-		batchClient = batchClient.Add(req.Doc(item))
+		if err != nil {
+			return nil, err
+		}
+
+		bulkClient = bulkClient.Add(
+			elastic.NewBulkIndexRequest().Index(b.index).Id(doc.S("id").Data().(string)).OpType("create").Doc(item),
+		)
 	}
 
-	return b.processBulkRequest(batchClient, len(items))
+	return b.processBulkRequest(bulkClient, len(items))
 }
 
 // Delete deletes one or multiple documents by id from the corresponding elasticsearch index
