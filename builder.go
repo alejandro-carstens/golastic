@@ -63,22 +63,28 @@ func (b *builder) Delete(ids ...string) (*WriteResponse, error) {
 	batchClient := b.client.Bulk()
 
 	for _, id := range ids {
-		req := elastic.NewBulkDeleteRequest().Index(b.index).Id(id)
-
-		batchClient = batchClient.Add(req)
+		batchClient = batchClient.Add(
+			elastic.NewBulkDeleteRequest().Index(b.index).Id(id),
+		)
 	}
 
 	return b.processBulkRequest(batchClient, len(ids))
 }
 
 // Update updates one or multiple documents from the corresponding elasticsearch index
-func (b *builder) Update(items ...Identifiable) (*WriteResponse, error) {
+func (b *builder) Update(items ...interface{}) (*WriteResponse, error) {
 	batchClient := b.client.Bulk()
 
 	for _, item := range items {
-		req := elastic.NewBulkUpdateRequest().Index(b.index).Id(item.ID())
+		doc, err := toGabsContainer(item)
 
-		batchClient = batchClient.Add(req.Doc(item))
+		if err != nil {
+			return nil, err
+		}
+
+		batchClient = batchClient.Add(
+			elastic.NewBulkUpdateRequest().Index(b.index).Id(doc.S("id").Data().(string)).Doc(item),
+		)
 	}
 
 	return b.processBulkRequest(batchClient, len(items))
