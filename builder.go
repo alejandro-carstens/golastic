@@ -40,7 +40,7 @@ func (b *builder) Find(id string, item interface{}) error {
 }
 
 // Insert inserts one or multiple documents into the corresponding elasticsearch index
-func (b *builder) Insert(items ...interface{}) (*WriteResponse, error) {
+func (b *builder) Insert(items ...interface{}) (*gabs.Container, error) {
 	bulkClient := b.client.Bulk()
 
 	for _, item := range items {
@@ -59,7 +59,7 @@ func (b *builder) Insert(items ...interface{}) (*WriteResponse, error) {
 }
 
 // Delete deletes one or multiple documents by id from the corresponding elasticsearch index
-func (b *builder) Delete(ids ...string) (*WriteResponse, error) {
+func (b *builder) Delete(ids ...string) (*gabs.Container, error) {
 	batchClient := b.client.Bulk()
 
 	for _, id := range ids {
@@ -72,7 +72,7 @@ func (b *builder) Delete(ids ...string) (*WriteResponse, error) {
 }
 
 // Update updates one or multiple documents from the corresponding elasticsearch index
-func (b *builder) Update(items ...interface{}) (*WriteResponse, error) {
+func (b *builder) Update(items ...interface{}) (*gabs.Container, error) {
 	batchClient := b.client.Bulk()
 
 	for _, item := range items {
@@ -355,12 +355,12 @@ func (b *builder) processChunks(channels chan map[int][]*json.RawMessage, hits [
 	channels <- result
 }
 
-func (b *builder) processBulkRequest(batchClient *elastic.BulkService, num int) (*WriteResponse, error) {
+func (b *builder) processBulkRequest(batchClient *elastic.BulkService, num int) (*gabs.Container, error) {
 	if batchClient.NumberOfActions() != num {
 		return nil, errors.New("The number of actions does not match the number of arguments.")
 	}
 
-	batchResponse, err := batchClient.Do(context.Background())
+	response, err := batchClient.Do(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -370,19 +370,7 @@ func (b *builder) processBulkRequest(batchClient *elastic.BulkService, num int) 
 		return nil, errors.New("The number of actions send does not match the number of arguments.")
 	}
 
-	result, err := toJson(batchResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var response *WriteResponse
-
-	if _, err := fromJson(result, &response); err != nil {
-		return nil, err
-	}
-
-	return response, nil
+	return toGabsContainer(response)
 }
 
 func (b *builder) processAggregations(aggregations elastic.Aggregations) (AggregationResponses, error) {

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Jeffail/gabs"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func TestInsert(t *testing.T) {
 		t.Error("Expected no error on insert ", err)
 	}
 
-	assertInsertResponse(t, res)
+	assertWriteResponse(t, "create", "created", 201, 1, res)
 
 	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got ", err)
@@ -48,7 +49,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	example := new(Example)
-	example.Id = strconv.Itoa(20)
+	example.Id = strconv.Itoa(1)
 	example.Description = "Description 1"
 	example.SubjectId = 1
 
@@ -59,23 +60,42 @@ func TestUpdate(t *testing.T) {
 	example.SubjectId = 2
 	example.Description = "Description 2"
 
-	response, err := connection.Builder("example").Update(example)
+	res, err := connection.Builder("example").Update(example)
 
 	if err != nil {
 		t.Error("Expected no error on update:", err)
 	}
 
-	assert.True(t, len(response.GetItems()) == 1)
-	assert.Equal(t, strconv.Itoa(20), response.First().Id)
-	assert.Equal(t, "example", response.First().Index)
-	assert.Equal(t, "_doc", response.First().Type)
-	assert.Equal(t, "updated", response.First().Result)
-	assert.Equal(t, 2, response.First().Version)
-	assert.Equal(t, 2, response.First().Shards.Total)
-	assert.Equal(t, 1, response.First().Shards.Successful)
-	assert.Equal(t, 0, response.First().Shards.Failed)
-	assert.Equal(t, 1, response.First().PrimaryTerm)
-	assert.Equal(t, 200, response.First().Status)
+	assertWriteResponse(t, "update", "updated", 200, 2, res)
+
+	if err := tearDownBuilder(connection); err != nil {
+		t.Error("Expected no error got:", err)
+	}
+}
+
+func TestDelete(t *testing.T) {
+	connection, err := initConnection()
+
+	if err != nil {
+		t.Error("Expected no error got ", err)
+	}
+
+	example := new(Example)
+	example.Id = strconv.Itoa(1)
+	example.Description = "Description 1"
+	example.SubjectId = 1
+
+	if _, err = connection.Builder("example").Insert(example); err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	res, err := connection.Builder("example").Delete(example.Id)
+
+	if err != nil {
+		t.Error("Expected no error got ", err)
+	}
+
+	assertWriteResponse(t, "delete", "deleted", 200, 2, res)
 
 	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
@@ -107,45 +127,6 @@ func TestFind(t *testing.T) {
 	assert.Equal(t, example.Id, response.Id)
 	assert.Equal(t, example.SubjectId, response.SubjectId)
 	assert.Equal(t, example.Description, response.Description)
-
-	if err := tearDownBuilder(connection); err != nil {
-		t.Error("Expected no error got:", err)
-	}
-}
-
-func TestDelete(t *testing.T) {
-	connection, err := initConnection()
-
-	if err != nil {
-		t.Error("Expected no error got ", err)
-	}
-
-	example := new(Example)
-	example.Id = strconv.Itoa(20)
-	example.Description = "Description 1"
-	example.SubjectId = 1
-
-	if _, err = connection.Builder("example").Insert(example); err != nil {
-		t.Error("Expected no error on insert:", err)
-	}
-
-	response, err := connection.Builder("example").Delete(example.Id)
-
-	if err != nil {
-		t.Error("Expected no error got ", err)
-	}
-
-	assert.True(t, len(response.GetItems()) == 1)
-	assert.Equal(t, strconv.Itoa(20), response.First().Id)
-	assert.Equal(t, "example", response.First().Index)
-	assert.Equal(t, "_doc", response.First().Type)
-	assert.Equal(t, "deleted", response.First().Result)
-	assert.Equal(t, 2, response.First().Version)
-	assert.Equal(t, 2, response.First().Shards.Total)
-	assert.Equal(t, 1, response.First().Shards.Successful)
-	assert.Equal(t, 0, response.First().Shards.Failed)
-	assert.Equal(t, 1, response.First().PrimaryTerm)
-	assert.Equal(t, 200, response.First().Status)
 
 	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
@@ -653,27 +634,32 @@ func tearDownBuilder(connection *connection) error {
 	return connection.Indexer(nil).DeleteIndex("example")
 }
 
-func assertInsertResponse(t *testing.T, response *WriteResponse) {
-	assert.IsType(t, 1, response.Took)
-	assert.True(t, len(response.GetItems()) > 0)
+func assertWriteResponse(t *testing.T, action string, result string, status int, version int, response *gabs.Container) {
+	items, err := response.S("items").Children()
 
-	for i, insert := range response.GetItems() {
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.True(t, len(items) > 0)
+
+	for i, item := range items {
 		i++
 
-		assert.Equal(t, strconv.Itoa(i), insert.Id)
-		assert.Equal(t, "example", insert.Index)
-		assert.Equal(t, "_doc", insert.Type)
-		assert.Equal(t, "created", insert.Result)
-		assert.Equal(t, 1, insert.Version)
-		assert.Equal(t, 1, insert.Shards.Successful)
-		assert.Equal(t, 0, insert.Shards.Failed)
-		assert.Equal(t, 1, insert.PrimaryTerm)
-		assert.Equal(t, 201, insert.Status)
+		assert.Equal(t, strconv.Itoa(i), item.S(action, "_id").Data().(string))
+		assert.Equal(t, "example", item.S(action, "_index").Data().(string))
+		assert.Equal(t, "_doc", item.S(action, "_type").Data().(string))
+		assert.Equal(t, result, item.S(action, "result").Data().(string))
+		assert.Equal(t, float64(version), item.S(action, "_version").Data().(float64))
+		assert.Equal(t, float64(1), item.S(action, "_shards", "successful").Data().(float64))
+		assert.Equal(t, float64(0), item.S(action, "_shards", "failed").Data().(float64))
+		assert.Equal(t, float64(1), item.S(action, "_primary_term").Data().(float64))
+		assert.Equal(t, float64(status), item.S(action, "status").Data().(float64))
 	}
 }
 
-func getModelsToSeed(num int) []Identifiable {
-	var models []Identifiable
+func getModelsToSeedAsInterface(num int) []interface{} {
+	models := []interface{}{}
 
 	for i := 0; i < num; i++ {
 		model := new(Example)
@@ -688,16 +674,6 @@ func getModelsToSeed(num int) []Identifiable {
 			model.SubjectId = 1
 		}
 
-		models = append(models, model)
-	}
-
-	return models
-}
-
-func getModelsToSeedAsInterface(num int) []interface{} {
-	models := []interface{}{}
-
-	for _, model := range getModelsToSeed(num) {
 		models = append(models, model)
 	}
 
