@@ -160,6 +160,7 @@ func (i *Indexer) GetIndices(indices ...string) (*gabs.Container, error) {
 	return parse(i.client.IndexGet(indices...).Do(context.Background()))
 }
 
+// PutSettings updates elasticsearch indices settings
 func (i *Indexer) PutSettings(body string, indices ...string) (*gabs.Container, error) {
 	service := i.client.IndexPutSettings(indices...).BodyString(body)
 
@@ -192,7 +193,7 @@ func (i *Indexer) DeleteRepositories(repositories ...string) (*gabs.Container, e
 	return parse(service.Do(context.Background()))
 }
 
-// Snaphsot takes a snapshot of one or more indices and stores it in the provided repository
+// Snapshot takes a snapshot of one or more indices and stores it in the provided repository
 func (i *Indexer) Snapshot(repository string, snapshot string, indices ...string) (*gabs.Container, error) {
 	service := i.client.SnapshotCreate(repository, snapshot)
 
@@ -340,7 +341,7 @@ func (i *Indexer) Close(name string) (*gabs.Container, error) {
 	return parse(service.Do(context.Background()))
 }
 
-// Close closes an elasticsearch index
+// Open opens an elasticsearch index
 func (i *Indexer) Open(name string) (*gabs.Container, error) {
 	service := i.client.OpenIndex(name)
 

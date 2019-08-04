@@ -25,7 +25,7 @@ type Connection struct {
 	context *ConnectionContext
 }
 
-// Init initializes an Elastic Client
+// Connect initializes an Elastic Client
 func (c *Connection) Connect() error {
 	client, err := elastic.NewClient(
 		elastic.SetURL(c.context.Urls...),
