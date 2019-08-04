@@ -2,5 +2,8 @@
 
 # Golastic
 
-Golastic is meant to be a simple and intuitive programmatic query DSL implementation for elasticsearch. It intends to provide a convenient and fluent interface for creating and running Elasticsearch queries.
+Golastic is meant to be a simple and intuitive programmatic query DSL implementation for Elasticsearch. It intends to provide a convenient and fluent interface for creating and running Elasticsearch queries as well as for performing different operations on indices themselves.
 
+## Building Queries
+
+Golastic provides the following clauses:
