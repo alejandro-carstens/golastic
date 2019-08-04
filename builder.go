@@ -245,10 +245,6 @@ func (b *builder) MinMax(field string, isDateField bool) (*MinMaxResponse, error
 	return b.parseMinMaxResponse(result.Aggregations, isDateField)
 }
 
-func (b *builder) RawQuery(rawQuery string) elastic.Query {
-	return elastic.RawStringQuery(rawQuery)
-}
-
 func (b *builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}, string, error) {
 	sources := []*json.RawMessage{}
 	sortResponse := []interface{}{}
