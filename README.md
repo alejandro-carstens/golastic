@@ -6,6 +6,40 @@
 
 Golastic is meant to be a simple and intuitive programmatic query DSL implementation for Elasticsearch. It intends to provide a convenient and fluent interface for creating and running Elasticsearch queries as well as for performing different operations on indices.
 
-## Building Queries
+## Getting Started
 
-Golastic provides the following clauses:
+To start using this package in your application simply run: ```go get github.com/alejandro-carstens/golastic```
+
+## Usage
+
+Establish a connection:
+```go
+
+import (
+    "os"
+    
+    "github.com/alejandro-carstens/golastic"
+)
+
+func main() {
+	connection := golastic.NewConnection(
+		&golastic.ConnectionContext{
+			Urls:                []string{os.Getenv("ELASTICSEARCH_URI")},
+			Password:            os.Getenv("ELASTICSEARCH_PASSWORD"),
+			Username:            os.Getenv("ELASTICSEARCH_USERNAME"),
+			HealthCheckInterval: 30,
+		},
+	)
+
+        if err := connection.Connect(); err != nil {
+                panic(err)
+        }
+  
+        // Do something else here
+}
+
+```
+
+### Building Queries
+
+Golastic provides the following clauses for building queries:
