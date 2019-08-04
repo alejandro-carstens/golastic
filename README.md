@@ -32,12 +32,28 @@ func main() {
 	)
 
         if err := connection.Connect(); err != nil {
-                panic(err)
+                // Handle error
         }
   
         // Do something else here
 }
 
+```
+
+Create a builder:
+```go
+	builder := connection.Builder("your_index")
+	
+	// start using it
+	
+	doc := &Example{
+		Id:          "awesome_unique_id",
+		Description: "This is an awesome description",
+	}
+	
+	response, err := builder.Insert(doc)
+	
+	// Handle response and error
 ```
 
 ### Building Queries
