@@ -145,7 +145,7 @@ func (b *builder) Execute(params map[string]interface{}) (*gabs.Container, error
 
 	script := ""
 
-	for field, _ := range params {
+	for field := range params {
 		script = script + "ctx._source." + field + " = params." + field + "; "
 	}
 

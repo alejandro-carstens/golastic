@@ -180,8 +180,8 @@ func (i *indexer) CreateRepository(repository string, repoType string, verify bo
 }
 
 // DeleteRepositories deletes one or many snapshot repositories
-func (i *indexer) DeleteRepositories(respositories ...string) (*gabs.Container, error) {
-	service := i.client.SnapshotDeleteRepository(respositories...)
+func (i *indexer) DeleteRepositories(repositories ...string) (*gabs.Container, error) {
+	service := i.client.SnapshotDeleteRepository(repositories...)
 
 	if i.options != nil && len(i.options.Timeout) > 0 {
 		service.MasterTimeout(i.options.Timeout)
@@ -219,8 +219,8 @@ func (i *indexer) Snapshot(repository string, snapshot string, indices ...string
 }
 
 // GetSnapshots retrives information regarding snapshots in a given repository
-func (i *indexer) GetSnapshots(respository string, snapshot string) (*gabs.Container, error) {
-	service := i.client.SnapshotGet(respository)
+func (i *indexer) GetSnapshots(repository string, snapshot string) (*gabs.Container, error) {
+	service := i.client.SnapshotGet(repository)
 
 	if snapshot != "*" && len(snapshot) > 0 {
 		service.Snapshot(snapshot)
