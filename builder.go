@@ -219,6 +219,7 @@ func (b *builder) Cursor(offset int, sortValues []interface{}, items interface{}
 	return sortResponse, json.Unmarshal([]byte(results), items)
 }
 
+// MinMax returns the minimum and maximum values for a given field on an index
 func (b *builder) MinMax(field string, isDateField bool) (*MinMaxResponse, error) {
 	rawQuery := `{
 		"aggs": {
