@@ -27,6 +27,7 @@ services:
       - "ELASTICSEARCH_URI=http://elasticsearch:9200"
       - "ELASTIC_USERNAME=${ELASTIC_USERNAME}"
       - "ELASTIC_PASSWORD=${ELASTIC_PASSWORD}"
+      - "GO111MODULE=on"
     volumes:
       - .:/go/src/golastic
     networks:
