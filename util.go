@@ -8,9 +8,9 @@ import (
 	"github.com/araddon/dateparse"
 )
 
-// Connection creates an elasticsearch connection
-func Connection(context *ConnectionContext) *connection {
-	return &connection{
+// NewConnection creates an elasticsearch connection
+func NewConnection(context *ConnectionContext) *Connection {
+	return &Connection{
 		context: context,
 	}
 }

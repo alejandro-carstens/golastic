@@ -19,13 +19,14 @@ type ConnectionContext struct {
 	Username            string
 }
 
-type connection struct {
+// Connection represents an elasticsearch connection
+type Connection struct {
 	client  *elastic.Client
 	context *ConnectionContext
 }
 
 // Init initializes an Elastic Client
-func (c *connection) Connect() error {
+func (c *Connection) Connect() error {
 	client, err := elastic.NewClient(
 		elastic.SetURL(c.context.Urls...),
 		elastic.SetSniff(c.context.Sniff),
@@ -45,7 +46,7 @@ func (c *connection) Connect() error {
 }
 
 // Indexer creates a new indexer
-func (c *connection) Indexer(options *IndexOptions) *indexer {
+func (c *Connection) Indexer(options *IndexOptions) *indexer {
 	return &indexer{
 		client:  c.client,
 		options: options,
@@ -53,7 +54,7 @@ func (c *connection) Indexer(options *IndexOptions) *indexer {
 }
 
 // Builder creates a new Builder
-func (c *connection) Builder(index string) *builder {
+func (c *Connection) Builder(index string) *builder {
 	return &builder{
 		client: c.client,
 		index:  index,

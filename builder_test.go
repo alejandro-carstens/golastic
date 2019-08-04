@@ -588,7 +588,7 @@ func TestMinMax(t *testing.T) {
 	}
 }
 
-func initConnection() (*connection, error) {
+func initConnection() (*Connection, error) {
 	connection, err := bootConnection()
 
 	if err != nil {
@@ -602,7 +602,7 @@ func initConnection() (*connection, error) {
 	return connection, nil
 }
 
-func tearDownBuilder(connection *connection) error {
+func tearDownBuilder(connection *Connection) error {
 	return connection.Indexer(nil).DeleteIndex("example")
 }
 

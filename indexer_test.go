@@ -44,8 +44,8 @@ func indexConfig() string {
 	return schema
 }
 
-func bootConnection() (*connection, error) {
-	connection := Connection(
+func bootConnection() (*Connection, error) {
+	connection := NewConnection(
 		&ConnectionContext{
 			Urls:                []string{os.Getenv("ELASTICSEARCH_URI")},
 			Password:            os.Getenv("ELASTICSEARCH_PASSWORD"),
