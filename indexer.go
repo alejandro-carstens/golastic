@@ -349,12 +349,12 @@ func (i *indexer) Open(name string) (*gabs.Container, error) {
 	return parse(service.Do(context.Background()))
 }
 
-// IndexCat retrieves information assocaited to the given index
+// IndexCat retrieves information associated to the given index
 func (i *indexer) IndexCat(name string) (*gabs.Container, error) {
 	return parse(i.client.CatIndices().Index(name).Columns(columns...).Do(context.Background()))
 }
 
-// AliasesCat retrives information assocaited to all current index aliases
+// AliasesCat retrives information associated to all current index aliases
 func (i *indexer) AliasesCat() (*gabs.Container, error) {
 	return parse(i.client.CatAliases().Columns("*").Do(context.Background()))
 }
