@@ -162,21 +162,7 @@ func TestUpdateByQuery(t *testing.T) {
 		t.Error("Expected no error got:", err)
 	}
 
-	assert.Equal(t, false, response.TimedOut)
-	assert.Equal(t, 1, response.Total)
-	assert.Equal(t, 1, response.Updated)
-	assert.Equal(t, 0, response.Deleted)
-	assert.Equal(t, 1, response.Batches)
-	assert.Equal(t, 0, response.VersionConflicts)
-	assert.Equal(t, 0, response.Noops)
-	assert.Equal(t, 0, response.Retries.Bulk)
-	assert.Equal(t, 0, response.Retries.Search)
-	assert.Equal(t, "", response.Throttled)
-	assert.Equal(t, 0, response.ThrottledMillis)
-	assert.Equal(t, -1, response.RequestsPerSecond)
-	assert.Equal(t, "", response.ThrottledUntil)
-	assert.Equal(t, 0, response.ThrottledUntilMillis)
-	assert.Equal(t, 0, len(response.Failures))
+	assertWriteByQueryResponse(t, false, response)
 
 	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
@@ -211,21 +197,7 @@ func TestDeleteByQuery(t *testing.T) {
 		t.Error("Expected no error got:", err)
 	}
 
-	assert.Equal(t, false, response.TimedOut)
-	assert.Equal(t, 1, response.Total)
-	assert.Equal(t, 0, response.Updated)
-	assert.Equal(t, 1, response.Deleted)
-	assert.Equal(t, 1, response.Batches)
-	assert.Equal(t, 0, response.VersionConflicts)
-	assert.Equal(t, 0, response.Noops)
-	assert.Equal(t, 0, response.Retries.Bulk)
-	assert.Equal(t, 0, response.Retries.Search)
-	assert.Equal(t, "", response.Throttled)
-	assert.Equal(t, 0, response.ThrottledMillis)
-	assert.Equal(t, -1, response.RequestsPerSecond)
-	assert.Equal(t, "", response.ThrottledUntil)
-	assert.Equal(t, 0, response.ThrottledUntilMillis)
-	assert.Equal(t, 0, len(response.Failures))
+	assertWriteByQueryResponse(t, true, response)
 
 	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)
@@ -656,6 +628,36 @@ func assertWriteResponse(t *testing.T, action string, result string, status int,
 		assert.Equal(t, float64(1), item.S(action, "_primary_term").Data().(float64))
 		assert.Equal(t, float64(status), item.S(action, "status").Data().(float64))
 	}
+}
+
+func assertWriteByQueryResponse(t *testing.T, isDelete bool, response *gabs.Container) {
+	assert.Equal(t, false, response.S("timed_out").Data().(bool))
+	assert.Equal(t, float64(1), response.S("total").Data().(float64))
+	assert.Equal(t, float64(1), response.S("batches").Data().(float64))
+	assert.Equal(t, float64(0), response.S("version_conflicts").Data().(float64))
+	assert.Equal(t, float64(0), response.S("noops").Data().(float64))
+	assert.Equal(t, float64(0), response.S("retries", "bulk").Data().(float64))
+	assert.Equal(t, float64(0), response.S("retries", "search").Data().(float64))
+	assert.Equal(t, "", response.S("throttled").Data().(string))
+	assert.Equal(t, float64(0), response.S("throttled_millis").Data().(float64))
+	assert.Equal(t, float64(-1), response.S("requests_per_second").Data().(float64))
+	assert.Equal(t, "", response.S("throttled_until").Data().(string))
+	assert.Equal(t, float64(0), response.S("throttled_until_millis").Data().(float64))
+
+	if isDelete {
+		assert.Equal(t, float64(1), response.S("deleted").Data().(float64))
+	} else {
+		assert.Equal(t, float64(0), response.S("deleted").Data().(float64))
+		assert.Equal(t, float64(1), response.S("updated").Data().(float64))
+	}
+
+	failures, err := response.S("failures").Children()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, 0, len(failures))
 }
 
 func getModelsToSeedAsInterface(num int) []interface{} {

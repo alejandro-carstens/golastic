@@ -137,7 +137,7 @@ func (b *builder) Get(items interface{}) error {
 }
 
 // Execute executes an ubdate by query
-func (b *builder) Execute(params map[string]interface{}) (*WriteByQueryResponse, error) {
+func (b *builder) Execute(params map[string]interface{}) (*gabs.Container, error) {
 	query, err := b.updateByQuery()
 
 	if err != nil {
@@ -146,52 +146,22 @@ func (b *builder) Execute(params map[string]interface{}) (*WriteByQueryResponse,
 
 	script := b.buildScript(params)
 
-	updateResponse, err := query.Script(script).Refresh("true").Do(context.Background())
+	response, err := query.Script(script).Refresh("true").Do(context.Background())
 
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := toJson(updateResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var response *WriteByQueryResponse
-
-	if _, err := fromJson(result, &response); err != nil {
-		return nil, err
-	}
-
-	return response, nil
+	return toGabsContainer(response)
 }
 
 // Destroy executes a delete by query
-func (b *builder) Destroy() (*WriteByQueryResponse, error) {
-	ctx := context.Background()
-
+func (b *builder) Destroy() (*gabs.Container, error) {
 	query := b.client.DeleteByQuery(b.index).ProceedOnVersionConflict().Query(b.query())
 
-	destroyResponse, err := query.Refresh("true").Do(ctx)
+	response, err := query.Refresh("true").Do(context.Background())
 
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := toJson(destroyResponse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var response *WriteByQueryResponse
-
-	if _, err := fromJson(result, &response); err != nil {
-		return nil, err
-	}
-
-	return response, nil
+	return toGabsContainer(response)
 }
 
 // Count retrieves the number of elements that match the query
