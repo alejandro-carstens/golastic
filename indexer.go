@@ -271,6 +271,7 @@ func (i *indexer) DeleteSnapshot(repository string, name string) (*gabs.Containe
 	return parse(i.client.SnapshotDelete(repository, name).Do(context.Background()))
 }
 
+// SnapshotRestore restores a snapshot from the specified repository
 func (i *indexer) SnapshotRestore(repository string, snapshot string) (*gabs.Container, error) {
 	service := i.client.SnapshotRestore(repository, snapshot)
 
@@ -303,6 +304,7 @@ func (i *indexer) SnapshotRestore(repository string, snapshot string) (*gabs.Con
 	return parse(service.Do(context.Background()))
 }
 
+// Recovery checks the indices recovery status when restoring a snapshot
 func (i *indexer) Recovery(indices ...string) (map[string]*gabs.Container, error) {
 	response, err := i.client.IndicesRecovery().Human(true).Indices(indices...).Do(context.Background())
 
@@ -400,6 +402,7 @@ func (i *indexer) IndexStats(indices ...string) (map[string]*gabs.Container, err
 	return mapContainer, nil
 }
 
+// Rollover executes an index rollover if the given conditions are met
 func (i *indexer) Rollover(alias, newIndex, maxAge, maxSize string, maxDocs int64, settings map[string]interface{}) (*gabs.Container, error) {
 	service := i.client.RolloverIndex(alias)
 

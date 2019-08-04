@@ -11,9 +11,8 @@ import (
 
 type builder struct {
 	queryBuilder
-	client        *elastic.Client
-	searchService *elastic.SearchService
-	index         string
+	index  string
+	client *elastic.Client
 }
 
 // Find retrieves an instance of a model for the specified Id from the corresponding elasticsearch index
