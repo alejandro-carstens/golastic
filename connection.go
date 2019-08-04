@@ -46,8 +46,8 @@ func (c *Connection) Connect() error {
 }
 
 // Indexer creates a new indexer
-func (c *Connection) Indexer(options *IndexOptions) *indexer {
-	return &indexer{
+func (c *Connection) Indexer(options *IndexOptions) *Indexer {
+	return &Indexer{
 		client:  c.client,
 		options: options,
 	}
