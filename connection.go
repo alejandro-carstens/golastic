@@ -54,8 +54,8 @@ func (c *Connection) Indexer(options *IndexOptions) *Indexer {
 }
 
 // Builder creates a new Builder
-func (c *Connection) Builder(index string) *builder {
-	return &builder{
+func (c *Connection) Builder(index string) *Builder {
+	return &Builder{
 		client: c.client,
 		index:  index,
 	}

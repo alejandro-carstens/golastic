@@ -9,14 +9,16 @@ import (
 	elastic "github.com/alejandro-carstens/elasticfork"
 )
 
-type builder struct {
+// Builder represents the struct in charge of building
+// and executing elasticsearch queries
+type Builder struct {
 	queryBuilder
 	index  string
 	client *elastic.Client
 }
 
 // Find retrieves an instance of a model for the specified Id from the corresponding elasticsearch index
-func (b *builder) Find(id string, item interface{}) error {
+func (b *Builder) Find(id string, item interface{}) error {
 	ctx := context.Background()
 
 	response, err := b.client.Get().Index(b.index).Id(id).Do(ctx)
@@ -39,7 +41,7 @@ func (b *builder) Find(id string, item interface{}) error {
 }
 
 // Insert inserts one or multiple documents into the corresponding elasticsearch index
-func (b *builder) Insert(items ...interface{}) (*gabs.Container, error) {
+func (b *Builder) Insert(items ...interface{}) (*gabs.Container, error) {
 	bulkClient := b.client.Bulk()
 
 	for _, item := range items {
@@ -58,7 +60,7 @@ func (b *builder) Insert(items ...interface{}) (*gabs.Container, error) {
 }
 
 // Delete deletes one or multiple documents by id from the corresponding elasticsearch index
-func (b *builder) Delete(ids ...string) (*gabs.Container, error) {
+func (b *Builder) Delete(ids ...string) (*gabs.Container, error) {
 	batchClient := b.client.Bulk()
 
 	for _, id := range ids {
@@ -71,7 +73,7 @@ func (b *builder) Delete(ids ...string) (*gabs.Container, error) {
 }
 
 // Update updates one or multiple documents from the corresponding elasticsearch index
-func (b *builder) Update(items ...interface{}) (*gabs.Container, error) {
+func (b *Builder) Update(items ...interface{}) (*gabs.Container, error) {
 	batchClient := b.client.Bulk()
 
 	for _, item := range items {
@@ -90,7 +92,7 @@ func (b *builder) Update(items ...interface{}) (*gabs.Container, error) {
 }
 
 // Aggregate retrieves all the queries aggregations
-func (b *builder) Aggregate() (map[string]*AggregationResponse, error) {
+func (b *Builder) Aggregate() (map[string]*AggregationResponse, error) {
 	searchService, err := b.build()
 
 	if err != nil {
@@ -111,7 +113,7 @@ func (b *builder) Aggregate() (map[string]*AggregationResponse, error) {
 }
 
 // Get executes the search query and retrieves the results
-func (b *builder) Get(items interface{}) error {
+func (b *Builder) Get(items interface{}) error {
 	searchService, err := b.build()
 
 	if err != nil {
@@ -136,7 +138,7 @@ func (b *builder) Get(items interface{}) error {
 }
 
 // Execute executes an ubdate by query
-func (b *builder) Execute(params map[string]interface{}) (*gabs.Container, error) {
+func (b *Builder) Execute(params map[string]interface{}) (*gabs.Container, error) {
 	query, err := b.updateByQuery()
 
 	if err != nil {
@@ -161,7 +163,7 @@ func (b *builder) Execute(params map[string]interface{}) (*gabs.Container, error
 }
 
 // Destroy executes a delete by query
-func (b *builder) Destroy() (*gabs.Container, error) {
+func (b *Builder) Destroy() (*gabs.Container, error) {
 	query := b.client.DeleteByQuery(b.index).ProceedOnVersionConflict().Query(b.query())
 
 	response, err := query.Refresh("true").Do(context.Background())
@@ -174,7 +176,7 @@ func (b *builder) Destroy() (*gabs.Container, error) {
 }
 
 // Count retrieves the number of elements that match the query
-func (b *builder) Count() (int64, error) {
+func (b *Builder) Count() (int64, error) {
 	if err := b.validateMustClauses(); err != nil {
 		return 0, err
 	}
@@ -183,7 +185,7 @@ func (b *builder) Count() (int64, error) {
 }
 
 // Cursor paginates based on searching after the last returned sortValues
-func (b *builder) Cursor(offset int, sortValues []interface{}, items interface{}) ([]interface{}, error) {
+func (b *Builder) Cursor(offset int, sortValues []interface{}, items interface{}) ([]interface{}, error) {
 	if offset == 0 || offset > LIMIT {
 		return nil, errors.New("Offset must be greater than 0 and lesser or equal to 10000")
 	}
@@ -220,7 +222,7 @@ func (b *builder) Cursor(offset int, sortValues []interface{}, items interface{}
 }
 
 // MinMax returns the minimum and maximum values for a given field on an index
-func (b *builder) MinMax(field string, isDateField bool) (*MinMaxResponse, error) {
+func (b *Builder) MinMax(field string, isDateField bool) (*MinMaxResponse, error) {
 	rawQuery := `{
 		"aggs": {
 		  "min": {
@@ -245,7 +247,7 @@ func (b *builder) MinMax(field string, isDateField bool) (*MinMaxResponse, error
 	return b.parseMinMaxResponse(result.Aggregations, isDateField)
 }
 
-func (b *builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}, string, error) {
+func (b *Builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}, string, error) {
 	sources := []*json.RawMessage{}
 	sortResponse := []interface{}{}
 
@@ -282,7 +284,7 @@ func (b *builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}
 	return sortResponse, results, err
 }
 
-func (b *builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMessage {
+func (b *Builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMessage {
 	sources := []*json.RawMessage{}
 
 	if len(hits) == 0 {
@@ -318,7 +320,7 @@ func (b *builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMessag
 	return sources
 }
 
-func (b *builder) processChunks(channels chan map[int][]*json.RawMessage, hits []*elastic.SearchHit, chunk int) {
+func (b *Builder) processChunks(channels chan map[int][]*json.RawMessage, hits []*elastic.SearchHit, chunk int) {
 	sources := []*json.RawMessage{}
 	result := map[int][]*json.RawMessage{}
 
@@ -331,7 +333,7 @@ func (b *builder) processChunks(channels chan map[int][]*json.RawMessage, hits [
 	channels <- result
 }
 
-func (b *builder) processBulkRequest(batchClient *elastic.BulkService, num int) (*gabs.Container, error) {
+func (b *Builder) processBulkRequest(batchClient *elastic.BulkService, num int) (*gabs.Container, error) {
 	if batchClient.NumberOfActions() != num {
 		return nil, errors.New("The number of actions does not match the number of arguments.")
 	}
@@ -349,7 +351,7 @@ func (b *builder) processBulkRequest(batchClient *elastic.BulkService, num int) 
 	return toGabsContainer(response)
 }
 
-func (b *builder) processAggregations(aggregations elastic.Aggregations) (AggregationResponses, error) {
+func (b *Builder) processAggregations(aggregations elastic.Aggregations) (AggregationResponses, error) {
 	aggregationResponse := make(AggregationResponses)
 
 	for field, source := range aggregations {
@@ -390,7 +392,7 @@ func (b *builder) processAggregations(aggregations elastic.Aggregations) (Aggreg
 	return aggregationResponse, nil
 }
 
-func (b *builder) processAggregationBuckets(buckets []*gabs.Container) (AggregationBuckets, error) {
+func (b *Builder) processAggregationBuckets(buckets []*gabs.Container) (AggregationBuckets, error) {
 	items := AggregationBuckets{}
 
 	for _, bucket := range buckets {
@@ -424,7 +426,7 @@ func (b *builder) processAggregationBuckets(buckets []*gabs.Container) (Aggregat
 	return items, nil
 }
 
-func (b *builder) updateByQuery() (*elastic.UpdateByQueryService, error) {
+func (b *Builder) updateByQuery() (*elastic.UpdateByQueryService, error) {
 	if err := b.validateMustClauses(); err != nil {
 		return nil, err
 	}
@@ -432,7 +434,7 @@ func (b *builder) updateByQuery() (*elastic.UpdateByQueryService, error) {
 	return b.client.UpdateByQuery(b.index).ProceedOnVersionConflict().Query(b.query()), nil
 }
 
-func (b *builder) build() (*elastic.SearchService, error) {
+func (b *Builder) build() (*elastic.SearchService, error) {
 	query := b.client.Search().Index(b.index)
 
 	if err := b.validateMustClauses(); err != nil {
@@ -470,7 +472,7 @@ func (b *builder) build() (*elastic.SearchService, error) {
 	return query, nil
 }
 
-func (b *builder) query() *elastic.BoolQuery {
+func (b *Builder) query() *elastic.BoolQuery {
 	wheres := make(chan []elastic.Query)
 	notWheres := make(chan []elastic.Query)
 	matches := make(chan []elastic.Query)
@@ -486,7 +488,7 @@ func (b *builder) query() *elastic.BoolQuery {
 	return q.Must(<-wheres...).MustNot(<-notWheres...).Must(<-matches...).MustNot(<-notMatches...).Filter(<-filters...)
 }
 
-func (b *builder) processWheres(wheres chan []elastic.Query, notWheres chan []elastic.Query) {
+func (b *Builder) processWheres(wheres chan []elastic.Query, notWheres chan []elastic.Query) {
 	var terms []elastic.Query
 	var notTerms []elastic.Query
 
@@ -531,7 +533,7 @@ func (b *builder) processWheres(wheres chan []elastic.Query, notWheres chan []el
 	notWheres <- notTerms
 }
 
-func (b *builder) processFilters(filters chan []elastic.Query) {
+func (b *Builder) processFilters(filters chan []elastic.Query) {
 	var terms []elastic.Query
 
 	for _, filterIn := range b.filterIns {
@@ -565,7 +567,7 @@ func (b *builder) processFilters(filters chan []elastic.Query) {
 	filters <- terms
 }
 
-func (b *builder) processMatches(matches chan []elastic.Query, notMatches chan []elastic.Query) {
+func (b *Builder) processMatches(matches chan []elastic.Query, notMatches chan []elastic.Query) {
 	var terms []elastic.Query
 	var notTerms []elastic.Query
 
@@ -595,7 +597,7 @@ func (b *builder) processMatches(matches chan []elastic.Query, notMatches chan [
 	notMatches <- notTerms
 }
 
-func (b *builder) processGroupBy(fields []string, query *elastic.SearchService) *elastic.SearchService {
+func (b *Builder) processGroupBy(fields []string, query *elastic.SearchService) *elastic.SearchService {
 	name := fields[0]
 
 	aggr := elastic.NewTermsAggregation().Field(name)
@@ -607,7 +609,7 @@ func (b *builder) processGroupBy(fields []string, query *elastic.SearchService) 
 	return query.Aggregation(name, aggr)
 }
 
-func (b *builder) parseMinMaxResponse(aggs elastic.Aggregations, isDateField bool) (*MinMaxResponse, error) {
+func (b *Builder) parseMinMaxResponse(aggs elastic.Aggregations, isDateField bool) (*MinMaxResponse, error) {
 	response := &MinMaxResponse{}
 
 	check := VALUE

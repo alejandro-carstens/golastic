@@ -23,6 +23,8 @@ type IndexOptions struct {
 	IndexSettings      map[string]interface{}
 }
 
+// Indexer represents a struct that performs different
+// actions on elasticsearch indices
 type Indexer struct {
 	options *IndexOptions
 	client  *elastic.Client
