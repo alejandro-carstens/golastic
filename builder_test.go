@@ -213,7 +213,7 @@ func TestGetWheres(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(10)...); err != nil {
+	if _, err = builder.Insert(seedModels(10)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -254,7 +254,7 @@ func TestGetFilters(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(10)...); err != nil {
+	if _, err = builder.Insert(seedModels(10)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -287,7 +287,7 @@ func TestGetMatches(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(10)...); err != nil {
+	if _, err = builder.Insert(seedModels(10)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -325,7 +325,7 @@ func TestGetLimitAndSort(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(10)...); err != nil {
+	if _, err = builder.Insert(seedModels(10)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -368,7 +368,7 @@ func TestAggregationGroupBy(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(11)...); err != nil {
+	if _, err = builder.Insert(seedModels(11)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -411,7 +411,7 @@ func TestAggregationGroupByMany(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(11)...); err != nil {
+	if _, err = builder.Insert(seedModels(11)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -458,7 +458,7 @@ func TestCount(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(11)...); err != nil {
+	if _, err = builder.Insert(seedModels(11)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -490,7 +490,7 @@ func TestCursor(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(15)...); err != nil {
+	if _, err = builder.Insert(seedModels(15)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -533,7 +533,7 @@ func TestFromGet(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(15)...); err != nil {
+	if _, err = builder.Insert(seedModels(15)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -568,7 +568,7 @@ func TestMinMax(t *testing.T) {
 
 	builder := connection.Builder("example")
 
-	if _, err = builder.Insert(getModelsToSeedAsInterface(15)...); err != nil {
+	if _, err = builder.Insert(seedModels(15)...); err != nil {
 		t.Error("Expected no error on insert:", err)
 	}
 
@@ -660,7 +660,7 @@ func assertWriteByQueryResponse(t *testing.T, isDelete bool, response *gabs.Cont
 	assert.Equal(t, 0, len(failures))
 }
 
-func getModelsToSeedAsInterface(num int) []interface{} {
+func seedModels(num int) []interface{} {
 	models := []interface{}{}
 
 	for i := 0; i < num; i++ {

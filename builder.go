@@ -144,9 +144,19 @@ func (b *builder) Execute(params map[string]interface{}) (*gabs.Container, error
 		return nil, err
 	}
 
-	script := b.buildScript(params)
+	script := ""
 
-	response, err := query.Script(script).Refresh("true").Do(context.Background())
+	for field, _ := range params {
+		script = script + "ctx._source." + field + " = params." + field + "; "
+	}
+
+	query.Script(elastic.NewScript(script).Lang("painless").Params(params))
+
+	response, err := query.Refresh("true").Do(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
 
 	return toGabsContainer(response)
 }
@@ -424,16 +434,6 @@ func (b *builder) updateByQuery() (*elastic.UpdateByQueryService, error) {
 	}
 
 	return b.client.UpdateByQuery(b.index).ProceedOnVersionConflict().Query(b.query()), nil
-}
-
-func (b *builder) buildScript(params map[string]interface{}) *elastic.Script {
-	script := ""
-
-	for field, _ := range params {
-		script = script + "ctx._source." + field + " = params." + field + "; "
-	}
-
-	return elastic.NewScript(script).Lang("painless").Params(params)
 }
 
 func (b *builder) build() (*elastic.SearchService, error) {
