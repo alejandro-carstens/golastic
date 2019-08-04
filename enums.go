@@ -1,8 +1,15 @@
 package golastic
 
+// CONCURRENT_BATCH is the default concurrent response proccesing batch size
 const CONCURRENT_BATCH int = 10
+
+// LIMIT is the default limit of documents to be returned by elasticsearch
 const LIMIT int = 10000
+
+// VALUE_AS_STRING self explanatory
 const VALUE_AS_STRING string = "value_as_string"
+
+// VALUE self EXPLANATORY
 const VALUE string = "value"
 
 var columns []string = []string{
