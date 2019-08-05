@@ -82,7 +82,7 @@ Create an indexer:
 
 ### Using the Indexer
 
-For more detailed documentation on the Indexer API please checkout the godoc [Indexer](https://godoc.org/github.com/alejandro-carstens/golastic#Indexer) section.
+Please checkout the godoc [Indexer](https://godoc.org/github.com/alejandro-carstens/golastic#Indexer) section for more detailed documentation on the Indexer API
 
 ### Building Queries
 
