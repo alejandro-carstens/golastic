@@ -90,14 +90,14 @@ Golastic provides the following clauses for building queries:
 
 #### Where Clauses
 
-Where clauses map to must + term queries in Elasticsearch, meaning that there will be a look up for the exact search term on an inverted index
+Where clauses map to ```must``` + ```term``` queries in Elasticsearch, meaning that there will be a look up for the exact search term on an inverted index
 
 * Where (```=, <>, >, <, <=, >=```)
 * WhereIn
 * WhereNotIn
 
 #### Match Clauses
-Match clauses map to must + match queries in Elasticsearch, which means that an analyzer will be applied to the search term and will therefore try to match what is stored on the a given index
+Match clauses map to ```must``` + ```match``` queries in Elasticsearch, which means that an analyzer will be applied to the search term and will therefore try to match what is stored on the a given index
 
 * Match (```=, <>```)
 * MatchIn
