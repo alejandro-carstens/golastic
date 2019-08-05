@@ -4,7 +4,7 @@
   <img src="https://github.com/alejandro-carstens/golastic/blob/master/logo.png">
 </p>
 
-Golastic is meant to be a simple and intuitive programmatic query DSL implementation for Elasticsearch. It intends to provide a convenient and fluent interface for creating and running Elasticsearch queries as well as for performing different operations on indices.
+Golastic is meant to be a simple and intuitive programmatic query DSL implementation for Elasticsearch. It intends to provide a convenient and fluent interface for creating and running Elasticsearch queries as well as for performing different indices operations.
 
 ## Getting Started
 
@@ -42,20 +42,43 @@ func main() {
 
 Create a builder:
 ```go
-	builder := connection.Builder("your_index")
-	
-	// start using it
-	
 	doc := &Example{
 		Id:          "awesome_unique_id",
 		Description: "This is an awesome description",
 	}
+	
+	builder := connection.Builder("your_index")
 	
 	response, err := builder.Insert(doc)
 	
 	// Handle response and error
 ```
 
+Create an indexer:
+```go
+	config := map[string]interface{}{
+		"settings": // settings...,
+		"mappings": // mappings...,
+	}
+	
+	schema, err := json.Marshal(config)
+	
+	if err != nil {
+		// Handle error
+	}
+	
+	options := &golastic.IndexOptions{
+		WaitForCompletion: true,
+		IgnoreUnavailable: true,
+		// More options...
+	}
+	
+	indexer := connection.Indexer(options)
+	
+	if err := indexer.CreateIndex("your_index", string(schema); err != nil {
+		// Handle error
+	}
+```
 ### Building Queries
 
 Golastic provides the following clauses for building queries:
