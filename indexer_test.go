@@ -13,10 +13,6 @@ type Example struct {
 	SubjectId   int    `json:"subject_id,omitempty"`
 }
 
-func (e *Example) ID() string {
-	return e.Id
-}
-
 func indexConfig() string {
 	schema, _ := toJson(map[string]interface{}{
 		"settings": map[string]int{
