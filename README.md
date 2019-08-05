@@ -97,7 +97,7 @@ Where clauses map to ```must``` + ```term``` queries in Elasticsearch, meaning t
 * WhereNotIn
 
 #### Match Clauses
-Match clauses map to ```must``` + ```match``` queries in Elasticsearch, which means that an analyzer will be applied to the search term and will therefore try to match what is stored on the a given index
+Match clauses map to ```must``` + ```match``` queries in Elasticsearch, which means that an analyzer will be applied to the search term and will therefore try to match what is stored on a given index
 
 * Match (```=, <>```)
 * MatchIn
