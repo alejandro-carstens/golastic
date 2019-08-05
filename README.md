@@ -79,6 +79,11 @@ Create an indexer:
 		// Handle error
 	}
 ```
+
+### Using the Indexer
+
+For more detailed documentation on the Indexer API please checkout the godoc indexer [section](https://pages.github.com/)
+
 ### Building Queries
 
 Golastic provides the following clauses for building queries:
