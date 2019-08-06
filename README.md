@@ -128,7 +128,7 @@ Ex:
 	
 	builder := connection.Builder("your_index")
 	
-	builder.Match("level", "<", 7).MatchIn("player", players).MatchNotIn("game", games)
+	builder.Match("level", "<>", 7).MatchIn("player", players).MatchNotIn("game", games)
 	
 	response := Response{} // It can also be map[string]interface{}{}
 	
