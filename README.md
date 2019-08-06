@@ -96,9 +96,43 @@ Where clauses map to ```must``` + ```term``` queries in Elasticsearch, meaning t
 * WhereIn
 * WhereNotIn
 
+Ex:
+
+```go
+	players := []interface{}{"player1", "player2", "palyer3"}
+	games := []interface{}{"game4", "game5"}
+	
+	builder := connection.Builder("your_index")
+	
+	builder.Where("level", ">", 2).WhereIn("player", players).WhereNotIn("game", games)
+	
+	response := Response{} // It can also be map[string]interface{}{}
+	
+	if err := builder.Get(&response); err != nil {
+		// Handle error
+	}
+```
+
 #### Match Clauses
 Match clauses map to ```must``` + ```match``` queries in Elasticsearch, which means that an analyzer will be applied to the search term and will therefore try to match what is stored on a given index
 
 * Match (```=, <>```)
 * MatchIn
 * MatchNotIn
+
+Ex:
+
+```go
+	players := []interface{}{"player1", "player2", "palyer3"}
+	games := []interface{}{"game4", "game5"}
+	
+	builder := connection.Builder("your_index")
+	
+	builder.Match("level", "<", 7).MatchIn("player", players).MatchNotIn("game", games)
+	
+	response := Response{} // It can also be map[string]interface{}{}
+	
+	if err := builder.Get(&response); err != nil {
+		// Handle error
+	}
+```
