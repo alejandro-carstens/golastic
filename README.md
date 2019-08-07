@@ -136,3 +136,67 @@ Ex:
 		// Handle error
 	}
 ```
+
+#### Filter Clauses
+Filter clauses map to ```filter``` + ```term``` queries in Elasticsearch. Filter queries do not use the ```_score``` field for returned results, they just return the results that match the query criteria
+
+* Filter (```<,>,<=,>=,<>, =```)
+* FilterIn
+* FilterNotIn
+
+Ex:
+
+```go
+	players := []interface{}{"player1", "player2", "palyer3"}
+	games := []interface{}{"game4", "game5"}
+	
+	builder := connection.Builder("your_index")
+	
+	builder.Filter("level", ">=", 7).FilterIn("player", players).FilterNotIn("game", games)
+	
+	response := Response{} // It can also be map[string]interface{}{}
+	
+	if err := builder.Get(&response); err != nil {
+		// Handle error
+	}
+```
+
+#### Limit Clause
+Limit clauses set the limit for the maximum number of documents to be returned
+
+Ex:
+
+```go
+	players := []interface{}{"player1", "player2", "palyer3"}
+	games := []interface{}{"game4", "game5"}
+	
+	builder := connection.Builder("your_index")
+	
+	builder.Filter("level", ">=", 7).WhereIn("player", players).Limit(10)
+	
+	response := []Response{} // It can also be map[string]interface{}{}
+	
+	if err := builder.Get(&response); err != nil {
+		// Handle error
+	}
+```
+
+#### OrderBy Clause
+OrderBy clauses set the sorting order in which the documents need to be returned. Use `true` for ascending and `false` for descending
+
+Ex:
+
+```go
+	players := []interface{}{"player1", "player2", "palyer3"}
+	games := []interface{}{"game4", "game5"}
+	
+	builder := connection.Builder("your_index")
+	
+	builder.Filter("level", ">=", 7).OrderBy("player", true).Limit(10)
+	
+	response := []Response{} // It can also be map[string]interface{}{}
+	
+	if err := builder.Get(&response); err != nil {
+		// Handle error
+	}
+```
