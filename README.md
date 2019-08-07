@@ -140,7 +140,7 @@ Ex:
 #### Filter Clauses
 Filter clauses map to ```filter``` + ```term``` queries in Elasticsearch. Filter queries do not use the ```_score``` field for returned results, they just return the results that match the query criteria
 
-* Filter (```<,>,<=,>=,<>, =```)
+* Filter (```=, <>, >, <, <=, >=```)
 * FilterIn
 * FilterNotIn
 
@@ -193,6 +193,26 @@ Ex:
 	builder := connection.Builder("your_index")
 	
 	builder.Filter("level", ">=", 7).OrderBy("player", true).Limit(10)
+	
+	response := []Response{} // It can also be map[string]interface{}{}
+	
+	if err := builder.Get(&response); err != nil {
+		// Handle error
+	}
+```
+
+#### From Clause
+From clauses set the offset from which the query will return documents
+
+Ex:
+
+```go
+	players := []interface{}{"player1", "player2", "palyer3"}
+	games := []interface{}{"game4", "game5"}
+	
+	builder := connection.Builder("your_index")
+	
+	builder.Filter("level", ">=", 7).OrderBy("player", true).From(5).Limit(5)
 	
 	response := []Response{} // It can also be map[string]interface{}{}
 	
