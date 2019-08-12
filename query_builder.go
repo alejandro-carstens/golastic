@@ -1,6 +1,15 @@
 package golastic
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
+
+type nested struct {
+	wheres  []*where
+	filters []*filter
+	matches []*match
+}
 
 type queryBuilder struct {
 	wheres      []*where
@@ -15,6 +24,7 @@ type queryBuilder struct {
 	limit       *limit
 	groupBy     *groupBy
 	from        *from
+	nested      map[string]*nested
 }
 
 func (qb *queryBuilder) Where(field string, operand string, value interface{}) *queryBuilder {
@@ -89,10 +99,122 @@ func (qb *queryBuilder) From(value int) *queryBuilder {
 	return qb
 }
 
+func (qb *queryBuilder) WhereNested(field string, operand string, value interface{}) *queryBuilder {
+	if len(qb.nested) == 0 {
+		qb.nested = map[string]*nested{}
+	}
+
+	path := strings.Split(field, ".")[0]
+
+	if _, valid := qb.nested[path]; !valid {
+		qb.nested[path] = &nested{}
+	}
+
+	if len(qb.nested[path].wheres) == 0 {
+		qb.nested[path].wheres = []*where{}
+	}
+
+	qb.nested[path].wheres = append(qb.nested[path].wheres, &where{
+		Field:   field,
+		Operand: operand,
+		Value:   value,
+	})
+
+	return qb
+}
+
+func (qb *queryBuilder) FilterNested(field string, operand string, value interface{}) *queryBuilder {
+	if len(qb.nested) == 0 {
+		qb.nested = map[string]*nested{}
+	}
+
+	path := strings.Split(field, ".")[0]
+
+	if _, valid := qb.nested[path]; !valid {
+		qb.nested[path] = &nested{}
+	}
+
+	if len(qb.nested[path].filters) == 0 {
+		qb.nested[path].filters = []*filter{}
+	}
+
+	qb.nested[path].filters = append(qb.nested[path].filters, &filter{
+		Field:   field,
+		Operand: operand,
+		Value:   value,
+	})
+
+	return qb
+}
+
+func (qb *queryBuilder) MatchNested(field string, operand string, value interface{}) *queryBuilder {
+	if len(qb.nested) == 0 {
+		qb.nested = map[string]*nested{}
+	}
+
+	path := strings.Split(field, ".")[0]
+
+	if _, valid := qb.nested[path]; !valid {
+		qb.nested[path] = &nested{}
+	}
+
+	if len(qb.nested[path].matches) == 0 {
+		qb.nested[path].matches = []*match{}
+	}
+
+	qb.nested[path].matches = append(qb.nested[path].matches, &match{
+		Field:   field,
+		Operand: operand,
+		Value:   value,
+	})
+
+	return qb
+}
+
 func (qb *queryBuilder) validateWheres() error {
 	for _, where := range qb.wheres {
 		if err := where.validate(); err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (qb *queryBuilder) validateNestedClauses() error {
+	for path, nested := range qb.nested {
+		if len(path) == 0 {
+			return errors.New("Path cannot be empty")
+		}
+
+		for _, where := range nested.wheres {
+			if err := where.validate(); err != nil {
+				return err
+			}
+
+			if len(strings.Split(where.Field, ".")) < 2 {
+				return errors.New("Wrong nested notation, needs to be 'object.property'")
+			}
+		}
+
+		for _, filter := range nested.filters {
+			if err := filter.validate(); err != nil {
+				return err
+			}
+
+			if len(strings.Split(filter.Field, ".")) < 2 {
+				return errors.New("Wrong nested notation, needs to be 'object.property'")
+			}
+		}
+
+		for _, match := range nested.matches {
+			if err := match.validate(); err != nil {
+				return err
+			}
+
+			if len(strings.Split(match.Field, ".")) < 2 {
+				return errors.New("Wrong nested notation, needs to be 'object.property'")
+			}
 		}
 	}
 
@@ -226,5 +348,9 @@ func (qb *queryBuilder) validateMustClauses() error {
 		return err
 	}
 
-	return qb.validateMatchClauses()
+	if err := qb.validateMatchClauses(); err != nil {
+		return err
+	}
+
+	return qb.validateNestedClauses()
 }

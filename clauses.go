@@ -2,27 +2,6 @@ package golastic
 
 import "errors"
 
-type whereIn struct {
-	Field  string
-	Values []interface{}
-}
-
-func (wi *whereIn) validate() error {
-	for _, value := range wi.Values {
-		if !isNumeric(value) && !isString(value) {
-			return errors.New("The value is not numeric nor a string.")
-		}
-	}
-
-	return nil
-}
-
-type whereNotIn struct {
-	whereIn
-	Field  string
-	Values []interface{}
-}
-
 type where struct {
 	Field   string
 	Operand string
@@ -53,6 +32,27 @@ func (w *where) isString() bool {
 
 func (w *where) isDate() bool {
 	return isDate(w.Value)
+}
+
+type whereIn struct {
+	Field  string
+	Values []interface{}
+}
+
+func (wi *whereIn) validate() error {
+	for _, value := range wi.Values {
+		if !isNumeric(value) && !isString(value) {
+			return errors.New("The value is not numeric nor a string.")
+		}
+	}
+
+	return nil
+}
+
+type whereNotIn struct {
+	whereIn
+	Field  string
+	Values []interface{}
 }
 
 type filter struct {

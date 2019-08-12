@@ -254,6 +254,7 @@ func (b *Builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}
 	chunkSize := calculateChunkSize(len(hits))
 	chunkCount := calculateChunkCount(len(hits), chunkSize)
 	channels := make(chan map[int][]*json.RawMessage, chunkCount)
+	counter := 0
 
 	for i := 0; i < len(hits); i += chunkSize {
 		end := i + chunkSize
@@ -264,7 +265,9 @@ func (b *Builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}
 			sortResponse = hits[len(hits)-1].Sort
 		}
 
-		go b.processChunks(channels, hits[i:end], i)
+		go b.processChunks(channels, hits[i:end], counter)
+
+		counter++
 	}
 
 	sourceMaps := map[int][]*json.RawMessage{}
@@ -294,6 +297,7 @@ func (b *Builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMessag
 	chunkSize := calculateChunkSize(len(hits))
 	chunkCount := calculateChunkCount(len(hits), chunkSize)
 	channels := make(chan map[int][]*json.RawMessage, chunkCount)
+	counter := 0
 
 	for i := 0; i < len(hits); i += chunkSize {
 		end := i + chunkSize
@@ -302,7 +306,9 @@ func (b *Builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMessag
 			end = len(hits)
 		}
 
-		go b.processChunks(channels, hits[i:end], i)
+		go b.processChunks(channels, hits[i:end], counter)
+
+		counter++
 	}
 
 	sourceMaps := map[int][]*json.RawMessage{}
@@ -478,14 +484,106 @@ func (b *Builder) query() *elastic.BoolQuery {
 	matches := make(chan []elastic.Query)
 	notMatches := make(chan []elastic.Query)
 	filters := make(chan []elastic.Query)
+	nestedQueries := make(chan []elastic.Query)
 
 	go b.processWheres(wheres, notWheres)
 	go b.processMatches(matches, notMatches)
 	go b.processFilters(filters)
+	go b.processNestedQueries(nestedQueries)
 
-	q := elastic.NewBoolQuery()
+	return elastic.NewBoolQuery().
+		Must(<-wheres...).
+		MustNot(<-notWheres...).
+		Must(<-matches...).
+		MustNot(<-notMatches...).
+		Filter(<-filters...).
+		Must(<-nestedQueries...)
+}
 
-	return q.Must(<-wheres...).MustNot(<-notWheres...).Must(<-matches...).MustNot(<-notMatches...).Filter(<-filters...)
+func (b *Builder) processNestedQueries(nestedQueries chan []elastic.Query) {
+	var queries []elastic.Query
+
+	for path, nested := range b.nested {
+		var terms []elastic.Query
+		var notTerms []elastic.Query
+		var filters []elastic.Query
+		var matches []elastic.Query
+		var notMatches []elastic.Query
+
+		for _, where := range nested.wheres {
+			if where.Operand == "=" {
+				terms = append(terms, elastic.NewTermQuery(where.Field, where.Value))
+				continue
+			}
+
+			if where.Operand == "<>" {
+				notTerms = append(notTerms, elastic.NewTermQuery(where.Field, where.Value))
+				continue
+			}
+
+			if !where.isString() || where.isDate() {
+				switch where.Operand {
+				case ">":
+					terms = append(terms, elastic.NewRangeQuery(where.Field).Gt(where.Value))
+					break
+				case "<":
+					terms = append(terms, elastic.NewRangeQuery(where.Field).Lt(where.Value))
+					break
+				case ">=":
+					terms = append(terms, elastic.NewRangeQuery(where.Field).Gte(where.Value))
+					break
+				case "<=":
+					terms = append(terms, elastic.NewRangeQuery(where.Field).Lte(where.Value))
+					break
+				}
+			}
+		}
+
+		for _, filter := range nested.filters {
+			if filter.Operand == "=" {
+				filters = append(filters, elastic.NewTermQuery(filter.Field, filter.Value))
+				continue
+			}
+
+			if !filter.isString() || filter.isDate() {
+				switch filter.Operand {
+				case ">":
+					filters = append(filters, elastic.NewRangeQuery(filter.Field).Gt(filter.Value))
+					break
+				case "<":
+					filters = append(filters, elastic.NewRangeQuery(filter.Field).Lt(filter.Value))
+					break
+				case ">=":
+					filters = append(filters, elastic.NewRangeQuery(filter.Field).Gte(filter.Value))
+					break
+				case "<=":
+					filters = append(filters, elastic.NewRangeQuery(filter.Field).Lte(filter.Value))
+					break
+				}
+			}
+		}
+
+		for _, match := range nested.matches {
+			if match.Operand == "=" {
+				matches = append(matches, elastic.NewMatchQuery(match.Field, match.Value))
+			}
+
+			if match.Operand == "<>" {
+				notMatches = append(notMatches, elastic.NewMatchQuery(match.Field, match.Value))
+			}
+		}
+
+		query := elastic.NewBoolQuery().
+			Must(terms...).
+			MustNot(notTerms...).
+			Filter(filters...).
+			Must(matches...).
+			MustNot(notMatches...)
+
+		queries = append(queries, elastic.NewNestedQuery(path, query))
+	}
+
+	nestedQueries <- queries
 }
 
 func (b *Builder) processWheres(wheres chan []elastic.Query, notWheres chan []elastic.Query) {

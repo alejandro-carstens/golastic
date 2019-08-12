@@ -1,9 +1,13 @@
 package golastic
 
 import (
+	"encoding/json"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/rs/xid"
 
 	"github.com/Jeffail/gabs"
 	"github.com/stretchr/testify/assert"
@@ -588,6 +592,34 @@ func TestMinMax(t *testing.T) {
 	}
 }
 
+func TestNested(t *testing.T) {
+	connection, err := initNestedConnection()
+
+	if err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	builder := connection.Builder("variants")
+
+	builder.WhereNested("attributes.color", "=", "Red").
+		FilterNested("attributes.size", "<=", 31).
+		MatchNested("attributes.sku", "=", "Red-31").
+		Where("price", "<", 150).
+		Limit(200)
+
+	variants := []Variant{}
+
+	if err := builder.Get(&variants); err != nil {
+		t.Error("Expected no error got:", err)
+	}
+
+	assert.Equal(t, 99, len(variants))
+
+	if err := connection.Indexer(nil).DeleteIndex("variants"); err != nil {
+		t.Error(err)
+	}
+}
+
 func initConnection() (*Connection, error) {
 	connection, err := bootConnection()
 
@@ -680,4 +712,106 @@ func seedModels(num int) []interface{} {
 	}
 
 	return models
+}
+
+type Variant struct {
+	Id         string `json:"id"`
+	Price      int    `json:"price"`
+	Attributes struct {
+		Color string `json:"color"`
+		Size  int    `json:"size"`
+		Sku   string `json:"sku"`
+	} `json:"attributes"`
+}
+
+func initNestedConnection() (*Connection, error) {
+	connection, err := bootConnection()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := createVariantIndex(connection); err != nil {
+		return nil, err
+	}
+
+	time.Sleep(1 * time.Second)
+
+	if _, err := connection.Builder("variants").Insert(makeVariants(100)...); err != nil {
+		return nil, err
+	}
+
+	time.Sleep(1 * time.Second)
+
+	return connection, nil
+}
+
+func createVariantIndex(connection *Connection) error {
+	schema := map[string]interface{}{
+		"settings": map[string]int{
+			"number_of_shards":   1,
+			"number_of_replicas": 1,
+		},
+		"mappings": map[string]interface{}{
+			"properties": map[string]interface{}{
+				"id": map[string]interface{}{
+					"type":  "keyword",
+					"index": true,
+				},
+				"price": map[string]interface{}{
+					"type":  "integer",
+					"index": true,
+				},
+				"attributes": map[string]interface{}{
+					"type": "nested",
+					"properties": map[string]interface{}{
+						"size": map[string]interface{}{
+							"type":  "integer",
+							"index": true,
+						},
+						"color": map[string]interface{}{
+							"type":  "keyword",
+							"index": true,
+						},
+						"sku": map[string]interface{}{
+							"type": "text",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b, err := json.Marshal(schema)
+
+	if err != nil {
+		return err
+	}
+
+	return connection.Indexer(nil).CreateIndex("variants", string(b))
+}
+
+func makeVariants(count int) []interface{} {
+	colors := []string{"Blue", "Red", "Red", "Purple", "Black"}
+	sizes := []int{30, 31, 32, 33, 34}
+	prices := []int{200, 150, 125, 100, 85}
+
+	variants := []interface{}{}
+
+	for i := 0; i < count; i++ {
+		for index, _ := range colors {
+			variant := &Variant{
+				Id:    xid.New().String(),
+				Price: prices[index] - i,
+			}
+
+			variant.Attributes.Color = colors[index]
+			variant.Attributes.Size = sizes[index]
+			variant.Attributes.Sku = fmt.Sprintf("%v-%v-%v", colors[index], sizes[index], i)
+
+			variants = append(variants, variant)
+		}
+	}
+
+	return variants
 }
