@@ -486,7 +486,13 @@ func (b *Builder) query() *elastic.BoolQuery {
 	filters := make(chan []elastic.Query)
 	nestedQueries := make(chan []elastic.Query)
 
-	go b.processWheres(wheres, notWheres)
+	go func() {
+		terms, notTerms := processWheres(b.wheres, b.whereIns, b.whereNotIns)
+
+		wheres <- terms
+		notWheres <- notTerms
+	}()
+
 	go b.processMatches(matches, notMatches)
 	go b.processFilters(filters)
 	go b.processNestedQueries(nestedQueries)
@@ -504,40 +510,11 @@ func (b *Builder) processNestedQueries(nestedQueries chan []elastic.Query) {
 	var queries []elastic.Query
 
 	for path, nested := range b.nested {
-		var terms []elastic.Query
-		var notTerms []elastic.Query
 		var filters []elastic.Query
 		var matches []elastic.Query
 		var notMatches []elastic.Query
 
-		for _, where := range nested.wheres {
-			if where.Operand == "=" {
-				terms = append(terms, elastic.NewTermQuery(where.Field, where.Value))
-				continue
-			}
-
-			if where.Operand == "<>" {
-				notTerms = append(notTerms, elastic.NewTermQuery(where.Field, where.Value))
-				continue
-			}
-
-			if !where.isString() || where.isDate() {
-				switch where.Operand {
-				case ">":
-					terms = append(terms, elastic.NewRangeQuery(where.Field).Gt(where.Value))
-					break
-				case "<":
-					terms = append(terms, elastic.NewRangeQuery(where.Field).Lt(where.Value))
-					break
-				case ">=":
-					terms = append(terms, elastic.NewRangeQuery(where.Field).Gte(where.Value))
-					break
-				case "<=":
-					terms = append(terms, elastic.NewRangeQuery(where.Field).Lte(where.Value))
-					break
-				}
-			}
-		}
+		terms, notTerms := processWheres(nested.wheres, nested.whereIns, nested.whereNotIns)
 
 		for _, filter := range nested.filters {
 			if filter.Operand == "=" {
@@ -584,51 +561,6 @@ func (b *Builder) processNestedQueries(nestedQueries chan []elastic.Query) {
 	}
 
 	nestedQueries <- queries
-}
-
-func (b *Builder) processWheres(wheres chan []elastic.Query, notWheres chan []elastic.Query) {
-	var terms []elastic.Query
-	var notTerms []elastic.Query
-
-	for _, whereIn := range b.whereIns {
-		terms = append(terms, elastic.NewTermsQuery(whereIn.Field, whereIn.Values...))
-	}
-
-	for _, whereNotIn := range b.whereNotIns {
-		notTerms = append(notTerms, elastic.NewTermsQuery(whereNotIn.Field, whereNotIn.Values...))
-	}
-
-	for _, where := range b.wheres {
-		if where.Operand == "=" {
-			terms = append(terms, elastic.NewTermQuery(where.Field, where.Value))
-			continue
-		}
-
-		if where.Operand == "<>" {
-			notTerms = append(notTerms, elastic.NewTermQuery(where.Field, where.Value))
-			continue
-		}
-
-		if !where.isString() || where.isDate() {
-			switch where.Operand {
-			case ">":
-				terms = append(terms, elastic.NewRangeQuery(where.Field).Gt(where.Value))
-				break
-			case "<":
-				terms = append(terms, elastic.NewRangeQuery(where.Field).Lt(where.Value))
-				break
-			case ">=":
-				terms = append(terms, elastic.NewRangeQuery(where.Field).Gte(where.Value))
-				break
-			case "<=":
-				terms = append(terms, elastic.NewRangeQuery(where.Field).Lte(where.Value))
-				break
-			}
-		}
-	}
-
-	wheres <- terms
-	notWheres <- notTerms
 }
 
 func (b *Builder) processFilters(filters chan []elastic.Query) {
@@ -757,4 +689,45 @@ func (b *Builder) parseMinMaxResponse(aggs elastic.Aggregations, isDateField boo
 	response.Min = val
 
 	return response, nil
+}
+
+func processWheres(wheres []*where, whereIns []*whereIn, whereNotIns []*whereNotIn) (terms []elastic.Query, notTerms []elastic.Query) {
+	for _, whereIn := range whereIns {
+		terms = append(terms, elastic.NewTermsQuery(whereIn.Field, whereIn.Values...))
+	}
+
+	for _, whereNotIn := range whereNotIns {
+		notTerms = append(notTerms, elastic.NewTermsQuery(whereNotIn.Field, whereNotIn.Values...))
+	}
+
+	for _, where := range wheres {
+		if where.Operand == "=" {
+			terms = append(terms, elastic.NewTermQuery(where.Field, where.Value))
+			continue
+		}
+
+		if where.Operand == "<>" {
+			notTerms = append(notTerms, elastic.NewTermQuery(where.Field, where.Value))
+			continue
+		}
+
+		if !where.isString() || where.isDate() {
+			switch where.Operand {
+			case ">":
+				terms = append(terms, elastic.NewRangeQuery(where.Field).Gt(where.Value))
+				break
+			case "<":
+				terms = append(terms, elastic.NewRangeQuery(where.Field).Lt(where.Value))
+				break
+			case ">=":
+				terms = append(terms, elastic.NewRangeQuery(where.Field).Gte(where.Value))
+				break
+			case "<=":
+				terms = append(terms, elastic.NewRangeQuery(where.Field).Lte(where.Value))
+				break
+			}
+		}
+	}
+
+	return terms, notTerms
 }

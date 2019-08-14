@@ -6,9 +6,11 @@ import (
 )
 
 type nested struct {
-	wheres  []*where
-	filters []*filter
-	matches []*match
+	wheres      []*where
+	whereIns    []*whereIn
+	whereNotIns []*whereNotIn
+	filters     []*filter
+	matches     []*match
 }
 
 type queryBuilder struct {
@@ -118,6 +120,52 @@ func (qb *queryBuilder) WhereNested(field string, operand string, value interfac
 		Field:   field,
 		Operand: operand,
 		Value:   value,
+	})
+
+	return qb
+}
+
+func (qb *queryBuilder) WhereInNested(field string, values []interface{}) *queryBuilder {
+	if len(qb.nested) == 0 {
+		qb.nested = map[string]*nested{}
+	}
+
+	path := strings.Split(field, ".")[0]
+
+	if _, valid := qb.nested[path]; !valid {
+		qb.nested[path] = &nested{}
+	}
+
+	if len(qb.nested[path].wheres) == 0 {
+		qb.nested[path].whereIns = []*whereIn{}
+	}
+
+	qb.nested[path].whereIns = append(qb.nested[path].whereIns, &whereIn{
+		Field:  field,
+		Values: values,
+	})
+
+	return qb
+}
+
+func (qb *queryBuilder) WhereNotInNested(field string, values []interface{}) *queryBuilder {
+	if len(qb.nested) == 0 {
+		qb.nested = map[string]*nested{}
+	}
+
+	path := strings.Split(field, ".")[0]
+
+	if _, valid := qb.nested[path]; !valid {
+		qb.nested[path] = &nested{}
+	}
+
+	if len(qb.nested[path].wheres) == 0 {
+		qb.nested[path].whereNotIns = []*whereNotIn{}
+	}
+
+	qb.nested[path].whereNotIns = append(qb.nested[path].whereNotIns, &whereNotIn{
+		Field:  field,
+		Values: values,
 	})
 
 	return qb
