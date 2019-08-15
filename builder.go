@@ -493,8 +493,17 @@ func (b *Builder) query() *elastic.BoolQuery {
 		notWheres <- notTerms
 	}()
 
-	go b.processMatches(matches, notMatches)
-	go b.processFilters(filters)
+	go func() {
+		filters <- processFilters(b.filters, b.filterIns)
+	}()
+
+	go func() {
+		terms, notTerms := processMatches(b.matches, b.matchIns, b.matchNotIns)
+
+		matches <- terms
+		notMatches <- notTerms
+	}()
+
 	go b.processNestedQueries(nestedQueries)
 
 	return elastic.NewBoolQuery().
@@ -510,121 +519,16 @@ func (b *Builder) processNestedQueries(nestedQueries chan []elastic.Query) {
 	var queries []elastic.Query
 
 	for path, nested := range b.nested {
-		var filters []elastic.Query
-		var matches []elastic.Query
-		var notMatches []elastic.Query
-
+		filters := processFilters(nested.filters, nested.filterIns)
 		terms, notTerms := processWheres(nested.wheres, nested.whereIns, nested.whereNotIns)
+		matches, notMatches := processMatches(nested.matches, nil, nil)
 
-		for _, filter := range nested.filters {
-			if filter.Operand == "=" {
-				filters = append(filters, elastic.NewTermQuery(filter.Field, filter.Value))
-				continue
-			}
-
-			if !filter.isString() || filter.isDate() {
-				switch filter.Operand {
-				case ">":
-					filters = append(filters, elastic.NewRangeQuery(filter.Field).Gt(filter.Value))
-					break
-				case "<":
-					filters = append(filters, elastic.NewRangeQuery(filter.Field).Lt(filter.Value))
-					break
-				case ">=":
-					filters = append(filters, elastic.NewRangeQuery(filter.Field).Gte(filter.Value))
-					break
-				case "<=":
-					filters = append(filters, elastic.NewRangeQuery(filter.Field).Lte(filter.Value))
-					break
-				}
-			}
-		}
-
-		for _, match := range nested.matches {
-			if match.Operand == "=" {
-				matches = append(matches, elastic.NewMatchQuery(match.Field, match.Value))
-			}
-
-			if match.Operand == "<>" {
-				notMatches = append(notMatches, elastic.NewMatchQuery(match.Field, match.Value))
-			}
-		}
-
-		query := elastic.NewBoolQuery().
-			Must(terms...).
-			MustNot(notTerms...).
-			Filter(filters...).
-			Must(matches...).
-			MustNot(notMatches...)
+		query := elastic.NewBoolQuery().Must(terms...).MustNot(notTerms...).Filter(filters...).Must(matches...).MustNot(notMatches...)
 
 		queries = append(queries, elastic.NewNestedQuery(path, query))
 	}
 
 	nestedQueries <- queries
-}
-
-func (b *Builder) processFilters(filters chan []elastic.Query) {
-	var terms []elastic.Query
-
-	for _, filterIn := range b.filterIns {
-		terms = append(terms, elastic.NewTermsQuery(filterIn.Field, filterIn.Values...))
-	}
-
-	for _, filter := range b.filters {
-		if filter.Operand == "=" {
-			terms = append(terms, elastic.NewTermQuery(filter.Field, filter.Value))
-			continue
-		}
-
-		if !filter.isString() || filter.isDate() {
-			switch filter.Operand {
-			case ">":
-				terms = append(terms, elastic.NewRangeQuery(filter.Field).Gt(filter.Value))
-				break
-			case "<":
-				terms = append(terms, elastic.NewRangeQuery(filter.Field).Lt(filter.Value))
-				break
-			case ">=":
-				terms = append(terms, elastic.NewRangeQuery(filter.Field).Gte(filter.Value))
-				break
-			case "<=":
-				terms = append(terms, elastic.NewRangeQuery(filter.Field).Lte(filter.Value))
-				break
-			}
-		}
-	}
-
-	filters <- terms
-}
-
-func (b *Builder) processMatches(matches chan []elastic.Query, notMatches chan []elastic.Query) {
-	var terms []elastic.Query
-	var notTerms []elastic.Query
-
-	for _, matchIn := range b.matchIns {
-		for _, value := range matchIn.Values {
-			terms = append(terms, elastic.NewMatchQuery(matchIn.Field, value))
-		}
-	}
-
-	for _, matchNotIn := range b.matchNotIns {
-		for _, value := range matchNotIn.Values {
-			notTerms = append(notTerms, elastic.NewMatchQuery(matchNotIn.Field, value))
-		}
-	}
-
-	for _, match := range b.matches {
-		if match.Operand == "=" {
-			terms = append(terms, elastic.NewMatchQuery(match.Field, match.Value))
-		}
-
-		if match.Operand == "<>" {
-			notTerms = append(notTerms, elastic.NewMatchQuery(match.Field, match.Value))
-		}
-	}
-
-	matches <- terms
-	notMatches <- notTerms
 }
 
 func (b *Builder) processGroupBy(fields []string, query *elastic.SearchService) *elastic.SearchService {
@@ -726,6 +630,66 @@ func processWheres(wheres []*where, whereIns []*whereIn, whereNotIns []*whereNot
 				terms = append(terms, elastic.NewRangeQuery(where.Field).Lte(where.Value))
 				break
 			}
+		}
+	}
+
+	return terms, notTerms
+}
+
+func processFilters(filters []*filter, filterIns []*filterIn) []elastic.Query {
+	var terms []elastic.Query
+
+	for _, filterIn := range filterIns {
+		terms = append(terms, elastic.NewTermsQuery(filterIn.Field, filterIn.Values...))
+	}
+
+	for _, filter := range filters {
+		if filter.Operand == "=" {
+			terms = append(terms, elastic.NewTermQuery(filter.Field, filter.Value))
+			continue
+		}
+
+		if !filter.isString() || filter.isDate() {
+			switch filter.Operand {
+			case ">":
+				terms = append(terms, elastic.NewRangeQuery(filter.Field).Gt(filter.Value))
+				break
+			case "<":
+				terms = append(terms, elastic.NewRangeQuery(filter.Field).Lt(filter.Value))
+				break
+			case ">=":
+				terms = append(terms, elastic.NewRangeQuery(filter.Field).Gte(filter.Value))
+				break
+			case "<=":
+				terms = append(terms, elastic.NewRangeQuery(filter.Field).Lte(filter.Value))
+				break
+			}
+		}
+	}
+
+	return terms
+}
+
+func processMatches(matches []*match, matchIns []*matchIn, matchNotIns []*matchNotIn) (terms []elastic.Query, notTerms []elastic.Query) {
+	for _, matchIn := range matchIns {
+		for _, value := range matchIn.Values {
+			terms = append(terms, elastic.NewMatchQuery(matchIn.Field, value))
+		}
+	}
+
+	for _, matchNotIn := range matchNotIns {
+		for _, value := range matchNotIn.Values {
+			notTerms = append(notTerms, elastic.NewMatchQuery(matchNotIn.Field, value))
+		}
+	}
+
+	for _, match := range matches {
+		if match.Operand == "=" {
+			terms = append(terms, elastic.NewMatchQuery(match.Field, match.Value))
+		}
+
+		if match.Operand == "<>" {
+			notTerms = append(notTerms, elastic.NewMatchQuery(match.Field, match.Value))
 		}
 	}
 

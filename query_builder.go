@@ -10,6 +10,7 @@ type nested struct {
 	whereIns    []*whereIn
 	whereNotIns []*whereNotIn
 	filters     []*filter
+	filterIns   []*filterIn
 	matches     []*match
 }
 
@@ -195,6 +196,29 @@ func (qb *queryBuilder) FilterNested(field string, operand string, value interfa
 	return qb
 }
 
+func (qb *queryBuilder) FilterInNested(field string, values []interface{}) *queryBuilder {
+	if len(qb.nested) == 0 {
+		qb.nested = map[string]*nested{}
+	}
+
+	path := strings.Split(field, ".")[0]
+
+	if _, valid := qb.nested[path]; !valid {
+		qb.nested[path] = &nested{}
+	}
+
+	if len(qb.nested[path].filterIns) == 0 {
+		qb.nested[path].filterIns = []*filterIn{}
+	}
+
+	qb.nested[path].filterIns = append(qb.nested[path].filterIns, &filterIn{
+		Field:  field,
+		Values: values,
+	})
+
+	return qb
+}
+
 func (qb *queryBuilder) MatchNested(field string, operand string, value interface{}) *queryBuilder {
 	if len(qb.nested) == 0 {
 		qb.nested = map[string]*nested{}
@@ -215,6 +239,22 @@ func (qb *queryBuilder) MatchNested(field string, operand string, value interfac
 		Operand: operand,
 		Value:   value,
 	})
+
+	return qb
+}
+
+func (qb *queryBuilder) MatchInNested(field string, values []interface{}) *queryBuilder {
+	for _, value := range values {
+		qb.Match(field, "=", value)
+	}
+
+	return qb
+}
+
+func (qb *queryBuilder) MatchNotInNested(field string, values []interface{}) *queryBuilder {
+	for _, value := range values {
+		qb.Match(field, "<>", value)
+	}
 
 	return qb
 }
@@ -245,12 +285,42 @@ func (qb *queryBuilder) validateNestedClauses() error {
 			}
 		}
 
+		for _, whereIn := range nested.whereIns {
+			if err := whereIn.validate(); err != nil {
+				return err
+			}
+
+			if len(strings.Split(whereIn.Field, ".")) < 2 {
+				return errors.New("Wrong nested notation, needs to be 'object.property'")
+			}
+		}
+
+		for _, whereNotIn := range nested.whereNotIns {
+			if err := whereNotIn.validate(); err != nil {
+				return err
+			}
+
+			if len(strings.Split(whereNotIn.Field, ".")) < 2 {
+				return errors.New("Wrong nested notation, needs to be 'object.property'")
+			}
+		}
+
 		for _, filter := range nested.filters {
 			if err := filter.validate(); err != nil {
 				return err
 			}
 
 			if len(strings.Split(filter.Field, ".")) < 2 {
+				return errors.New("Wrong nested notation, needs to be 'object.property'")
+			}
+		}
+
+		for _, filterIn := range nested.filterIns {
+			if err := filterIn.validate(); err != nil {
+				return err
+			}
+
+			if len(strings.Split(filterIn.Field, ".")) < 2 {
 				return errors.New("Wrong nested notation, needs to be 'object.property'")
 			}
 		}
