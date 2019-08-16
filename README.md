@@ -147,7 +147,6 @@ Ex:
 
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
-	games := []interface{}{"game4", "game5"}
 	
 	builder := connection.Builder("your_index")
 	
@@ -166,11 +165,10 @@ Golastic provides the ability to perform nested queries using all the previous c
 Ex:
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
-	games := []interface{}{"game4", "game5"}
 	
 	builder := connection.Builder("your_index")
 	
-	builder.FilterNested("video_game.level", ">=", 7).WhereNotInNested("video_game.player", players).Limit(10)
+	builder.FilterNested("video_game.level", ">=", 7).WhereNotInNested("video_game.player", players)
 	
 	response := []Response{} // It can also be map[string]interface{}{}
 	
@@ -186,7 +184,6 @@ Ex:
 
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
-	games := []interface{}{"game4", "game5"}
 	
 	builder := connection.Builder("your_index")
 	
@@ -206,7 +203,6 @@ Ex:
 
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
-	games := []interface{}{"game4", "game5"}
 	
 	builder := connection.Builder("your_index")
 	
@@ -226,7 +222,6 @@ Ex:
 
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
-	games := []interface{}{"game4", "game5"}
 	
 	builder := connection.Builder("your_index")
 	
