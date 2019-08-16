@@ -106,7 +106,7 @@ Ex:
 	
 	builder.Where("level", ">", 2).WhereIn("player", players).WhereNotIn("game", games)
 	
-	response := Response{} // It can also be map[string]interface{}{}
+	response := []Response{} // It can also be map[string]interface{}{}
 	
 	if err := builder.Get(&response); err != nil {
 		// Handle error
@@ -130,7 +130,7 @@ Ex:
 	
 	builder.Match("level", "<>", 7).MatchIn("player", players).MatchNotIn("game", games)
 	
-	response := Response{} // It can also be map[string]interface{}{}
+	response := []Response{} // It can also be map[string]interface{}{}
 	
 	if err := builder.Get(&response); err != nil {
 		// Handle error
@@ -142,7 +142,6 @@ Filter clauses map to ```filter``` + ```term``` queries in Elasticsearch. Filter
 
 * Filter (```=, <>, >, <, <=, >=```)
 * FilterIn
-* FilterNotIn
 
 Ex:
 
@@ -152,9 +151,28 @@ Ex:
 	
 	builder := connection.Builder("your_index")
 	
-	builder.Filter("level", ">=", 7).FilterIn("player", players).FilterNotIn("game", games)
+	builder.Filter("level", ">=", 7).FilterIn("player", players)
 	
-	response := Response{} // It can also be map[string]interface{}{}
+	response := []Response{} // It can also be map[string]interface{}{}
+	
+	if err := builder.Get(&response); err != nil {
+		// Handle error
+	}
+```
+
+#### Nested Clauses
+Golastic provides the ability to perform nested queries using all the previous clauses ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. It is important to specify the nested path using dot notation such as ```attribute.value```.
+
+Ex:
+```go
+	players := []interface{}{"player1", "player2", "palyer3"}
+	games := []interface{}{"game4", "game5"}
+	
+	builder := connection.Builder("your_index")
+	
+	builder.FilterNested("video_game.level", ">=", 7).WhereNotInNested("video_game.player", players).Limit(10)
+	
+	response := []Response{} // It can also be map[string]interface{}{}
 	
 	if err := builder.Get(&response); err != nil {
 		// Handle error
