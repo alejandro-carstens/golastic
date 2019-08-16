@@ -160,7 +160,7 @@ Ex:
 ```
 
 #### Nested Clauses
-Golastic provides the ability to perform nested queries using all the previous clauses ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. It is important to specify the nested path using dot notation such as ```attribute.value```.
+Golastic provides the ability to perform nested queries using all the previous clauses ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. However, it is important to specify the nested path using dot notation such as ```attribute.value```.
 
 Ex:
 ```go
