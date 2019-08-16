@@ -854,7 +854,7 @@ func makeVariants(count int) []interface{} {
 	variants := []interface{}{}
 
 	for i := 0; i < count; i++ {
-		for index, _ := range colors {
+		for index := range colors {
 			variant := &Variant{
 				Id:    xid.New().String(),
 				Price: prices[index] - i,
