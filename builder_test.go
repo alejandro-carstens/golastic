@@ -7,9 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rs/xid"
-
 	"github.com/Jeffail/gabs"
+	"github.com/rs/xid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -608,6 +607,62 @@ func TestNested(t *testing.T) {
 		Limit(200)
 
 	variants := []Variant{}
+
+	if err := builder.Get(&variants); err != nil {
+		t.Error("Expected no error got:", err)
+	}
+
+	assert.Equal(t, 99, len(variants))
+
+	if err := connection.Indexer(nil).DeleteIndex("variants"); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestNestedIns(t *testing.T) {
+	connection, err := initNestedConnection()
+
+	if err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	builder := connection.Builder("variants")
+
+	builder.WhereInNested("attributes.color", []interface{}{"Red", "Red"}).
+		FilterInNested("attributes.size", []interface{}{30, 31}).
+		MatchInNested("attributes.sku", []interface{}{"Red-31"}).
+		Where("price", "<", 150).
+		Limit(200)
+
+	variants := []Variant{}
+
+	if err := builder.Get(&variants); err != nil {
+		t.Error("Expected no error got:", err)
+	}
+
+	assert.Equal(t, 99, len(variants))
+
+	if err := connection.Indexer(nil).DeleteIndex("variants"); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestNestedNotIns(t *testing.T) {
+	connection, err := initNestedConnection()
+
+	if err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	builder := connection.Builder("variants")
+
+	variants := []Variant{}
+
+	builder.WhereNotInNested("attributes.color", []interface{}{"Black", "Blue", "Purple"}).
+		MatchNotInNested("attributes.sku", []interface{}{"Whatever", "Something Very Different"}).
+		FilterInNested("attributes.size", []interface{}{31}).
+		Where("price", "<", 150).
+		Limit(200)
 
 	if err := builder.Get(&variants); err != nil {
 		t.Error("Expected no error got:", err)

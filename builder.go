@@ -636,9 +636,7 @@ func processWheres(wheres []*where, whereIns []*whereIn, whereNotIns []*whereNot
 	return terms, notTerms
 }
 
-func processFilters(filters []*filter, filterIns []*filterIn) []elastic.Query {
-	var terms []elastic.Query
-
+func processFilters(filters []*filter, filterIns []*filterIn) (terms []elastic.Query) {
 	for _, filterIn := range filterIns {
 		terms = append(terms, elastic.NewTermsQuery(filterIn.Field, filterIn.Values...))
 	}

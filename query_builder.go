@@ -245,7 +245,7 @@ func (qb *queryBuilder) MatchNested(field string, operand string, value interfac
 
 func (qb *queryBuilder) MatchInNested(field string, values []interface{}) *queryBuilder {
 	for _, value := range values {
-		qb.Match(field, "=", value)
+		qb.MatchNested(field, "=", value)
 	}
 
 	return qb
@@ -253,7 +253,7 @@ func (qb *queryBuilder) MatchInNested(field string, values []interface{}) *query
 
 func (qb *queryBuilder) MatchNotInNested(field string, values []interface{}) *queryBuilder {
 	for _, value := range values {
-		qb.Match(field, "<>", value)
+		qb.MatchNested(field, "<>", value)
 	}
 
 	return qb
