@@ -86,7 +86,7 @@ Please checkout the godoc [Indexer](https://godoc.org/github.com/alejandro-carst
 
 ### Building Queries
 
-Golastic provides the following *clauses* for building queries:
+Golastic provides the following **clauses** for building queries:
 
 #### Where
 
