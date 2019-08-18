@@ -95,9 +95,6 @@ Where clauses map to ```must``` + ```term``` queries in Elasticsearch, meaning t
 * Where (```=, <>, >, <, <=, >=```)
 * WhereIn
 * WhereNotIn
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	games := []interface{}{"game4", "game5"}
@@ -119,9 +116,6 @@ Match clauses map to ```must``` + ```match``` queries in Elasticsearch, which me
 * Match (```=, <>```)
 * MatchIn
 * MatchNotIn
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	games := []interface{}{"game4", "game5"}
@@ -142,9 +136,6 @@ Filter clauses map to ```filter``` + ```term``` queries in Elasticsearch. Filter
 
 * Filter (```=, <>, >, <, <=, >=```)
 * FilterIn
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
@@ -161,8 +152,6 @@ Ex:
 
 #### Nested Clauses
 Golastic provides the ability to perform nested queries using all the previous clauses ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. However, it is important to specify the nested path using dot notation such as ```attribute.value```.
-
-Ex:
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
@@ -179,9 +168,6 @@ Ex:
 
 #### From Clause
 From clauses set the offset from which the query will return documents
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
@@ -198,9 +184,6 @@ Ex:
 
 #### Limit Clause
 Limit clauses set the limit for the maximum number of documents to be returned
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
@@ -217,9 +200,6 @@ Ex:
 
 #### OrderBy Clause
 OrderBy clauses set the sorting order in which the documents need to be returned. Use `true` for ascending and `false` for descending.
-
-Ex:
-
 ```go	
 	builder := connection.Builder("your_index")
 	
@@ -234,9 +214,6 @@ Ex:
 
 #### OrderByNested
 OrderByNested clauses allows for sorting by nested fields. As its non-nested counter part please use `true` for ascending and `false` for descending.
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
