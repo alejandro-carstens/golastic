@@ -75,7 +75,7 @@ Create an indexer:
 	
 	indexer := connection.Indexer(options)
 	
-	if err := indexer.CreateIndex("your_index", string(schema); err != nil {
+	if err := indexer.CreateIndex("your_index", string(schema)); err != nil {
 		// Handle error
 	}
 ```
