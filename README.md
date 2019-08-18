@@ -86,9 +86,9 @@ Please checkout the godoc [Indexer](https://godoc.org/github.com/alejandro-carst
 
 ### Building Queries
 
-Golastic provides the following clauses for building queries:
+Golastic provides the following *clauses* for building queries:
 
-#### Where Clauses
+#### Where
 
 Where clauses map to ```must``` + ```term``` queries in Elasticsearch, meaning that there will be a look up for the exact search term on an inverted index
 
@@ -110,7 +110,7 @@ Where clauses map to ```must``` + ```term``` queries in Elasticsearch, meaning t
 	}
 ```
 
-#### Match Clauses
+#### Match
 Match clauses map to ```must``` + ```match``` queries in Elasticsearch, which means that an analyzer will be applied to the search term and will therefore try to match what is stored on a given index
 
 * Match (```=, <>```)
@@ -131,7 +131,7 @@ Match clauses map to ```must``` + ```match``` queries in Elasticsearch, which me
 	}
 ```
 
-#### Filter Clauses
+#### Filter
 Filter clauses map to ```filter``` + ```term``` queries in Elasticsearch. Filter queries do not use the ```_score``` field for returned results, they just return the results that match the query criteria
 
 * Filter (```=, <>, >, <, <=, >=```)
@@ -150,7 +150,7 @@ Filter clauses map to ```filter``` + ```term``` queries in Elasticsearch. Filter
 	}
 ```
 
-#### Nested Clauses
+#### Nested
 Golastic provides the ability to perform nested queries using all the previous clauses ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. However, it is important to specify the nested path using dot notation such as ```attribute.value```.
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
@@ -166,7 +166,7 @@ Golastic provides the ability to perform nested queries using all the previous c
 	}
 ```
 
-#### From Clause
+#### From
 From clauses set the offset from which the query will return documents
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
@@ -182,7 +182,7 @@ From clauses set the offset from which the query will return documents
 	}
 ```
 
-#### Limit Clause
+#### Limit
 Limit clauses set the limit for the maximum number of documents to be returned
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
@@ -198,7 +198,7 @@ Limit clauses set the limit for the maximum number of documents to be returned
 	}
 ```
 
-#### OrderBy Clause
+#### OrderBy
 OrderBy clauses set the sorting order in which the documents need to be returned. Use `true` for ascending and `false` for descending.
 ```go	
 	builder := connection.Builder("your_index")
