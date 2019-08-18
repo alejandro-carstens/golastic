@@ -28,6 +28,7 @@ type queryBuilder struct {
 	groupBy     *groupBy
 	from        *from
 	nested      map[string]*nested
+	nestedSort  *nestedSort
 }
 
 func (qb *queryBuilder) Where(field string, operand string, value interface{}) *queryBuilder {
@@ -254,6 +255,18 @@ func (qb *queryBuilder) MatchInNested(field string, values []interface{}) *query
 func (qb *queryBuilder) MatchNotInNested(field string, values []interface{}) *queryBuilder {
 	for _, value := range values {
 		qb.MatchNested(field, "<>", value)
+	}
+
+	return qb
+}
+
+func (qb *queryBuilder) OrderByNested(path string, order bool) *queryBuilder {
+	qb.nestedSort = &nestedSort{Order: order, Field: path}
+
+	pieces := strings.Split(path, ".")
+
+	if len(pieces) > 1 {
+		qb.nestedSort.Path = pieces[0]
 	}
 
 	return qb

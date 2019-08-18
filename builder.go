@@ -463,6 +463,16 @@ func (b *Builder) build() (*elastic.SearchService, error) {
 		query = query.Size(b.limit.Limit)
 	}
 
+	if b.nestedSort != nil {
+		if err := b.nestedSort.validate(); err != nil {
+			return nil, err
+		}
+
+		nestedSort := elastic.NewNestedSort(b.nestedSort.Path)
+
+		query = query.SortBy(elastic.NewFieldSort(b.nestedSort.Field).Nested(nestedSort).Order(b.nestedSort.Order))
+	}
+
 	if b.from != nil {
 		if err := b.validateFrom(); err != nil {
 			return nil, err

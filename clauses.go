@@ -139,3 +139,21 @@ type from struct {
 type groupBy struct {
 	Fields []string
 }
+
+type nestedSort struct {
+	Field string
+	Path  string
+	Order bool
+}
+
+func (ns *nestedSort) validate() error {
+	if len(ns.Field) == 0 {
+		return errors.New("field cannot be empty")
+	}
+
+	if len(ns.Path) == 0 {
+		return errors.New("path cannot be empty")
+	}
+
+	return nil
+}

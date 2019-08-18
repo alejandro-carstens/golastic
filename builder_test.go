@@ -675,6 +675,32 @@ func TestNestedNotIns(t *testing.T) {
 	}
 }
 
+func TestNestedSort(t *testing.T) {
+	connection, err := initNestedConnection()
+
+	if err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	builder := connection.Builder("variants")
+
+	variants := []Variant{}
+
+	builder.Where("price", "<", 150).OrderByNested("attributes.color", true).Limit(200)
+
+	if err := builder.Get(&variants); err != nil {
+		t.Error("Expected no error got:", err)
+	}
+
+	assert.Equal(t, 200, len(variants))
+	assert.Equal(t, "Black", variants[0].Attributes.Color)
+	assert.Equal(t, "Purple", variants[199].Attributes.Color)
+
+	if err := connection.Indexer(nil).DeleteIndex("variants"); err != nil {
+		t.Error(err)
+	}
+}
+
 func initConnection() (*Connection, error) {
 	connection, err := bootConnection()
 
