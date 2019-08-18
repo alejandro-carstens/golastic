@@ -177,6 +177,25 @@ Ex:
 	}
 ```
 
+#### From Clause
+From clauses set the offset from which the query will return documents
+
+Ex:
+
+```go
+	players := []interface{}{"player1", "player2", "palyer3"}
+	
+	builder := connection.Builder("your_index")
+	
+	builder.Filter("level", ">=", 7).OrderBy("player", true).From(5).Limit(5)
+	
+	response := []Response{} // It can also be map[string]interface{}{}
+	
+	if err := builder.Get(&response); err != nil {
+		// Handle error
+	}
+```
+
 #### Limit Clause
 Limit clauses set the limit for the maximum number of documents to be returned
 
@@ -197,13 +216,11 @@ Ex:
 ```
 
 #### OrderBy Clause
-OrderBy clauses set the sorting order in which the documents need to be returned. Use `true` for ascending and `false` for descending
+OrderBy clauses set the sorting order in which the documents need to be returned. Use `true` for ascending and `false` for descending.
 
 Ex:
 
-```go
-	players := []interface{}{"player1", "player2", "palyer3"}
-	
+```go	
 	builder := connection.Builder("your_index")
 	
 	builder.Filter("level", ">=", 7).OrderBy("player", true).Limit(10)
@@ -215,8 +232,8 @@ Ex:
 	}
 ```
 
-#### From Clause
-From clauses set the offset from which the query will return documents
+#### OrderByNested
+OrderByNested clauses allows for sorting by nested fields. As its non-nested counter part please use `true` for ascending and `false` for descending.
 
 Ex:
 
@@ -225,7 +242,7 @@ Ex:
 	
 	builder := connection.Builder("your_index")
 	
-	builder.Filter("level", ">=", 7).OrderBy("player", true).From(5).Limit(5)
+	builder.Filter("level", ">=", 7).OrderByNested("attributes.price", true).Limit(10)
 	
 	response := []Response{} // It can also be map[string]interface{}{}
 	
