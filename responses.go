@@ -1,8 +1,6 @@
 package golastic
 
-import (
-	"github.com/Jeffail/gabs"
-)
+import "github.com/Jeffail/gabs"
 
 // AggregationResponses represents a map for *AggregationResponse
 type AggregationResponses map[string]*AggregationResponse
