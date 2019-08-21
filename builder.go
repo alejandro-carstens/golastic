@@ -398,8 +398,8 @@ func (b *Builder) processAggregations(aggregations elastic.Aggregations) (Aggreg
 	return aggregationResponse, nil
 }
 
-func (b *Builder) processAggregationBuckets(buckets []*gabs.Container) (AggregationBuckets, error) {
-	items := AggregationBuckets{}
+func (b *Builder) processAggregationBuckets(buckets []*gabs.Container) (aggregationBuckets, error) {
+	items := aggregationBuckets{}
 
 	for _, bucket := range buckets {
 		subAggregations := AggregationResponses{}

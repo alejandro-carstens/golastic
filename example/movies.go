@@ -51,7 +51,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	builder.GroupBy("rating").Limit(100)
+	builder.GroupBy("rating", "views").Limit(10000)
 
 	response, err := builder.Aggregate()
 
@@ -60,8 +60,8 @@ func main() {
 	}
 
 	b, err := json.Marshal(map[string]interface{}{
-		"movies":   movies,
-		"response": response,
+		"movies":       movies,
+		"aggregations": response,
 	})
 
 	if err != nil {
@@ -154,6 +154,7 @@ type movie struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Rating      string `json:"rating"`
+	Views       int    `json:"views"`
 	Cast        struct {
 		Director string `json:"director"`
 		Total    int    `json:"total"`
@@ -162,6 +163,7 @@ type movie struct {
 }
 
 var ratings []string = []string{"R", "PG", "F"}
+var views []int = []int{500000, 600000, 700000}
 
 func makeMovie() (movie, error) {
 	m := movie{}
@@ -181,6 +183,7 @@ func makeMovie() (movie, error) {
 	}
 
 	m.Rating = ratings[index]
+	m.Views = views[index]
 
 	return m, nil
 }
