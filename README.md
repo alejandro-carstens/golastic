@@ -151,7 +151,7 @@ Filter clauses map to ```filter``` + ```term``` queries in Elasticsearch. Filter
 ```
 
 #### Nested
-Golastic provides the ability to perform nested queries using all the previous clauses ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. However, it is important to specify the nested path using dot notation such as ```attribute.value```.
+Golastic provides the ability to perform nested queries by using all the previous clauses nested counterparts ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. However, it is important to specify the nested path using dot notation such as ```attribute.value```.
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
@@ -226,4 +226,47 @@ OrderByNested clauses allows for sorting by nested fields. As its non-nested cou
 	if err := builder.Get(&response); err != nil {
 		// Handle error
 	}
+```
+
+#### GroupBy
+The GroupBy clause is used for performing aggregations. This clause won't have any effect on a `Get`, `Execute`, or `Destroy` query. It will only produce results when an `Aggregate` query is issued. This clause makes it is possible to aggregate by one or more paramters. The first parameter will be the main aggregation and each subsequent field will become a sub-aggregation of the previous aggregation. It is important to mention that aggregations for nested fields have not been yet implemented by Golastic. Please refer to the following example for a better understanding.
+```go
+	builder.
+		WhereIn("rating", []interface{}{"R"}).
+		WhereNested("cast.director", "=", "James Cameron").
+		GroupBy("rating", "views")
+		
+	aggregations, err := builder.Aggregate()
+	
+	if err != nil {
+		// Handle error
+	}
+```
+Example of the `aggregations` response:
+```json
+{  
+   "rating":{  
+      "doc_count_error_upper_bound":0,
+      "sum_other_doc_count":0,
+      "buckets":[  
+         {  
+            "key":"R",
+            "doc_count":330,
+            "items":{  
+               "views":{  
+                  "doc_count_error_upper_bound":0,
+                  "sum_other_doc_count":0,
+                  "buckets":[  
+                     {  
+                        "key":500000,
+                        "doc_count":330,
+                        "items":null
+                     }
+                  ]
+               }
+            }
+         }
+      ]
+   }
+}
 ```
