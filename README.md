@@ -75,7 +75,7 @@ Create an indexer:
 	
 	indexer := connection.Indexer(options)
 	
-	if err := indexer.CreateIndex("your_index", string(schema); err != nil {
+	if err := indexer.CreateIndex("your_index", string(schema)); err != nil {
 		// Handle error
 	}
 ```
@@ -86,18 +86,15 @@ Please checkout the godoc [Indexer](https://godoc.org/github.com/alejandro-carst
 
 ### Building Queries
 
-Golastic provides the following clauses for building queries:
+Golastic provides the following **clauses** for building queries:
 
-#### Where Clauses
+#### Where
 
 Where clauses map to ```must``` + ```term``` queries in Elasticsearch, meaning that there will be a look up for the exact search term on an inverted index
 
 * Where (```=, <>, >, <, <=, >=```)
 * WhereIn
 * WhereNotIn
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	games := []interface{}{"game4", "game5"}
@@ -113,15 +110,12 @@ Ex:
 	}
 ```
 
-#### Match Clauses
+#### Match
 Match clauses map to ```must``` + ```match``` queries in Elasticsearch, which means that an analyzer will be applied to the search term and will therefore try to match what is stored on a given index
 
 * Match (```=, <>```)
 * MatchIn
 * MatchNotIn
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	games := []interface{}{"game4", "game5"}
@@ -137,14 +131,11 @@ Ex:
 	}
 ```
 
-#### Filter Clauses
+#### Filter
 Filter clauses map to ```filter``` + ```term``` queries in Elasticsearch. Filter queries do not use the ```_score``` field for returned results, they just return the results that match the query criteria
 
 * Filter (```=, <>, >, <, <=, >=```)
 * FilterIn
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
@@ -159,10 +150,8 @@ Ex:
 	}
 ```
 
-#### Nested Clauses
+#### Nested
 Golastic provides the ability to perform nested queries using all the previous clauses ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. However, it is important to specify the nested path using dot notation such as ```attribute.value```.
-
-Ex:
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
@@ -177,11 +166,24 @@ Ex:
 	}
 ```
 
-#### Limit Clause
+#### From
+From clauses set the offset from which the query will return documents
+```go
+	players := []interface{}{"player1", "player2", "palyer3"}
+	
+	builder := connection.Builder("your_index")
+	
+	builder.Filter("level", ">=", 7).OrderBy("player", true).From(5).Limit(5)
+	
+	response := []Response{} // It can also be map[string]interface{}{}
+	
+	if err := builder.Get(&response); err != nil {
+		// Handle error
+	}
+```
+
+#### Limit
 Limit clauses set the limit for the maximum number of documents to be returned
-
-Ex:
-
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
@@ -196,14 +198,9 @@ Ex:
 	}
 ```
 
-#### OrderBy Clause
-OrderBy clauses set the sorting order in which the documents need to be returned. Use `true` for ascending and `false` for descending
-
-Ex:
-
-```go
-	players := []interface{}{"player1", "player2", "palyer3"}
-	
+#### OrderBy
+OrderBy clauses set the sorting order in which the documents need to be returned. Use `true` for ascending and `false` for descending.
+```go	
 	builder := connection.Builder("your_index")
 	
 	builder.Filter("level", ">=", 7).OrderBy("player", true).Limit(10)
@@ -215,17 +212,14 @@ Ex:
 	}
 ```
 
-#### From Clause
-From clauses set the offset from which the query will return documents
-
-Ex:
-
+#### OrderByNested
+OrderByNested clauses allows for sorting by nested fields. As its non-nested counter part please use `true` for ascending and `false` for descending.
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
 	builder := connection.Builder("your_index")
 	
-	builder.Filter("level", ">=", 7).OrderBy("player", true).From(5).Limit(5)
+	builder.Filter("level", ">=", 7).OrderByNested("attributes.price", true).Limit(10)
 	
 	response := []Response{} // It can also be map[string]interface{}{}
 	
