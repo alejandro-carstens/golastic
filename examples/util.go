@@ -2,11 +2,11 @@ package examples
 
 import (
 	"encoding/json"
-	"golastic"
 	"math"
 	"math/rand"
 	"time"
 
+	"github.com/alejandro-carstens/golastic"
 	"github.com/bxcodec/faker"
 	"github.com/rs/xid"
 )
