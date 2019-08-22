@@ -151,7 +151,7 @@ Filter clauses map to ```filter``` + ```term``` queries in Elasticsearch. Filter
 ```
 
 #### Nested
-Golastic provides the ability to perform nested queries using all the previous clauses ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. However, it is important to specify the nested path using dot notation such as ```attribute.value```.
+Golastic provides the ability to perform nested queries by using all the previous clauses nested counterparts ```WhereNested, WhereInNested, WhereNotInNested, FilterNested, FilterInNested, MatchNested, MatchInNested & MatchNotInNested```. Nested clauses are subjected to the same rules as their non-nested counter parts. However, it is important to specify the nested path using dot notation such as ```attribute.value```.
 ```go
 	players := []interface{}{"player1", "player2", "palyer3"}
 	
@@ -227,3 +227,55 @@ OrderByNested clauses allows for sorting by nested fields. As its non-nested cou
 		// Handle error
 	}
 ```
+
+#### GroupBy
+The GroupBy clause is used for performing aggregations. This clause won't have any effect on a `Get`, `Execute`, or `Destroy` query. It will only produce results when an `Aggregate` query is issued. This clause makes it is possible to aggregate by one or more paramters. The first parameter will be the main aggregation and each subsequent field will become a sub-aggregation of the previous aggregation. It is important to mention that aggregations for nested fields have not been yet implemented by Golastic. Please refer to the following example for a better understanding.
+```go
+	builder.
+		WhereIn("rating", []interface{}{"R"}).
+		WhereNested("cast.director", "=", "James Cameron").
+		GroupBy("rating", "views")
+		
+	aggregations, err := builder.Aggregate()
+	
+	if err != nil {
+		// Handle error
+	}
+```
+Example of the `aggregations` response:
+```json
+{  
+   "rating":{  
+      "doc_count_error_upper_bound":0,
+      "sum_other_doc_count":0,
+      "buckets":[  
+         {  
+            "key":"R",
+            "doc_count":330,
+            "items":{  
+               "views":{  
+                  "doc_count_error_upper_bound":0,
+                  "sum_other_doc_count":0,
+                  "buckets":[  
+                     {  
+                        "key":500000,
+                        "doc_count":330,
+                        "items":null
+                     }
+                  ]
+               }
+            }
+         }
+      ]
+   }
+}
+```
+
+### Using the Builder to Execute Queries
+Please refer to the godoc [Builder](https://godoc.org/github.com/alejandro-carstens/golastic#Builder) section for detailed documentation of the methods available to run queries. For further reference on functionality please look at the `examples` folder or take a look at the tests.
+
+## Contributing
+<b>By using this package you are already contributing, if you would like to go a bit further simply give the project a star</b>. Otherwise, find an area you can help with and do it. Open source is about collaboration and open participation. Try to make your code look like what already exists or hopefully better and submit a pull request. Also, if you have any ideas on how to make the code better or on improving its scope and functionality please raise an issue and I will do my best to address it in a timely manner.
+
+## Liscense
+MIT.
