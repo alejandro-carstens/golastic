@@ -270,3 +270,12 @@ Example of the `aggregations` response:
    }
 }
 ```
+
+### Using the Builder to Execute Queries
+Please refer to the godoc [Builder](https://godoc.org/github.com/alejandro-carstens/golastic#Builder) section for detailed documentation of the methods available to run queries. For further reference on functionality please look at the `examples` folder or take a look at the tests.
+
+## Contributing
+<b>By using this package you are already contributing, if you would like to go a bit further simply give the project a star</b>. Otherwise, find an area you can help with and do it. Open source is about collaboration and open participation. Try to make your code look like what already exists or hopefully better and submit a pull request. Also, if you have any ideas on how to make the code better or on improving its scope and functionality please raise an issue and I will do my best to address it in a timely manner.
+
+## Liscense
+MIT.
