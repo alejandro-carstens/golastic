@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"golastic/examples"
 	"log"
 	"os"
 	"time"
@@ -42,30 +41,33 @@ func main() {
 		WhereNested("cast.director", "=", "James Cameron").
 		OrderBy("release_date", true)
 
-	var sortValues []interface{} = nil
+	var cursor []interface{} = nil
+	var err error = nil
 
 	for {
 		movies := []examples.Movie{}
 
-		sortValues, err := builder.Cursor(100, sortValues, &movies)
+		cursor, err = builder.Cursor(100, cursor, &movies)
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		if len(sortValues) == 0 {
+		if len(movies) < 100 {
 			log.Println("Done.")
+
 			return
 		}
 
 		b, err := json.Marshal(map[string]interface{}{
-			"sortValues": sortValues,
+			"cursor": cursor,
 		})
 
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 
+		log.Println(len(movies))
 		log.Println(string(b))
 	}
 }
