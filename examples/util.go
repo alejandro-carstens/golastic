@@ -1,77 +1,17 @@
-package main
+package examples
 
 import (
 	"encoding/json"
-	"log"
+	"golastic"
 	"math"
 	"math/rand"
-	"os"
 	"time"
 
-	"github.com/alejandro-carstens/golastic"
 	"github.com/bxcodec/faker"
 	"github.com/rs/xid"
 )
 
-func main() {
-	connection := golastic.NewConnection(&golastic.ConnectionContext{
-		Urls:                []string{os.Getenv("ELASTICSEARCH_URI")},
-		Password:            os.Getenv("ELASTICSEARCH_PASSWORD"),
-		Username:            os.Getenv("ELASTICSEARCH_USERNAME"),
-		HealthCheckInterval: 30,
-	})
-
-	if err := connection.Connect(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := createIndex(connection); err != nil {
-		log.Fatal(err)
-	}
-
-	time.Sleep(1 * time.Second)
-
-	builder := connection.Builder("movies")
-
-	if err := seedMovies(builder); err != nil {
-		log.Fatal(err)
-	}
-
-	time.Sleep(1 * time.Second)
-
-	builder.
-		WhereIn("rating", []interface{}{"R"}).
-		WhereNested("cast.director", "=", "James Cameron").
-		OrderBy("release_date", true).
-		Limit(15)
-
-	movies := []movie{}
-
-	if err := builder.Get(&movies); err != nil {
-		log.Fatal(err)
-	}
-
-	builder.GroupBy("rating", "views").Limit(10000)
-
-	response, err := builder.Aggregate()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	b, err := json.Marshal(map[string]interface{}{
-		"movies":       movies,
-		"aggregations": response,
-	})
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println(string(b))
-}
-
-func createIndex(connection *golastic.Connection) error {
+func CreateIndex(connection *golastic.Connection) error {
 	schema := map[string]interface{}{
 		"settings": map[string]int{
 			"number_of_shards":   1,
@@ -123,7 +63,7 @@ func createIndex(connection *golastic.Connection) error {
 	return connection.Indexer(nil).CreateIndex("movies", string(b))
 }
 
-func seedMovies(builder *golastic.Builder) error {
+func SeedMovies(builder *golastic.Builder) error {
 	count := 0
 
 	movies := []interface{}{}
@@ -149,7 +89,7 @@ func seedMovies(builder *golastic.Builder) error {
 	return err
 }
 
-type movie struct {
+type Movie struct {
 	Id          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
@@ -165,8 +105,8 @@ type movie struct {
 var ratings []string = []string{"R", "PG", "F"}
 var views []int = []int{500000, 600000, 700000}
 
-func makeMovie() (movie, error) {
-	m := movie{}
+func makeMovie() (Movie, error) {
+	m := Movie{}
 
 	if err := faker.FakeData(&m); err != nil {
 		return m, err
