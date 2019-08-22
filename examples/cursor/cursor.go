@@ -66,7 +66,7 @@ func main() {
 		})
 
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 
 		log.Println(string(b))
