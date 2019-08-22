@@ -60,6 +60,8 @@ func main() {
 		}
 
 		b, err := json.Marshal(map[string]interface{}{
+			"movies": movies,
+			"count":  len(movies),
 			"cursor": cursor,
 		})
 
@@ -67,7 +69,6 @@ func main() {
 			log.Println(err)
 		}
 
-		log.Println(len(movies))
 		log.Println(string(b))
 	}
 }
