@@ -69,6 +69,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Println(string(b))
+		log.Printf("Response: %v", string(b))
 	}
 }

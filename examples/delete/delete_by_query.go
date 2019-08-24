@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"os"
 	"time"
@@ -36,34 +35,31 @@ func main() {
 
 	time.Sleep(1 * time.Second)
 
-	builder.
-		WhereIn("rating", []interface{}{"R"}).
-		WhereNested("cast.director", "=", "James Cameron").
-		OrderBy("release_date", true).
-		Limit(15)
+	builder.WhereIn("rating", []interface{}{"R"}).WhereNested("cast.director", "=", "James Cameron")
 
-	movies := []examples.Movie{}
-
-	if err := builder.Get(&movies); err != nil {
-		log.Fatal(err)
-	}
-
-	builder.GroupBy("rating", "views").Limit(10000)
-
-	response, err := builder.Aggregate()
+	count, err := builder.Count()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	b, err := json.Marshal(map[string]interface{}{
-		"movies":       movies,
-		"aggregations": response,
-	})
+	log.Printf("Pre-delete count: %v", count)
+
+	response, err := builder.Destroy()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("Response: %v", string(b))
+	log.Printf("Response: %v", response.String())
+
+	builder.WhereIn("rating", []interface{}{"R"}).WhereNested("cast.director", "=", "James Cameron")
+
+	count, err = builder.Count()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Post-delete count: %v", count)
 }
