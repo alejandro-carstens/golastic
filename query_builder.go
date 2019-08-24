@@ -272,6 +272,25 @@ func (qb *queryBuilder) OrderByNested(path string, order bool) *queryBuilder {
 	return qb
 }
 
+func (qb *queryBuilder) Clear() *queryBuilder {
+	qb.wheres = nil
+	qb.matches = nil
+	qb.matchIns = nil
+	qb.matchNotIns = nil
+	qb.filters = nil
+	qb.filterIns = nil
+	qb.whereIns = nil
+	qb.whereNotIns = nil
+	qb.sorts = nil
+	qb.limit = nil
+	qb.groupBy = nil
+	qb.from = nil
+	qb.nested = nil
+	qb.nestedSort = nil
+
+	return qb
+}
+
 func (qb *queryBuilder) validateWheres() error {
 	for _, where := range qb.wheres {
 		if err := where.validate(); err != nil {
