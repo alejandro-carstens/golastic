@@ -2,8 +2,10 @@ package examples
 
 import (
 	"encoding/json"
+	"log"
 	"math"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/alejandro-carstens/golastic"
@@ -11,7 +13,36 @@ import (
 	"github.com/rs/xid"
 )
 
-func CreateIndex(connection *golastic.Connection) error {
+func Connect() (*golastic.Builder, error) {
+	connection := golastic.NewConnection(&golastic.ConnectionContext{
+		Urls:                []string{os.Getenv("ELASTICSEARCH_URI")},
+		Password:            os.Getenv("ELASTICSEARCH_PASSWORD"),
+		Username:            os.Getenv("ELASTICSEARCH_USERNAME"),
+		HealthCheckInterval: 30,
+	})
+
+	if err := connection.Connect(); err != nil {
+		return nil, err
+	}
+
+	if err := createIndex(connection); err != nil {
+		return nil, err
+	}
+
+	time.Sleep(1 * time.Second)
+
+	builder := connection.Builder("movies")
+
+	if err := seedMovies(builder); err != nil {
+		log.Fatal(err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	return builder, nil
+}
+
+func createIndex(connection *golastic.Connection) error {
 	schema := map[string]interface{}{
 		"settings": map[string]int{
 			"number_of_shards":   1,
@@ -63,7 +94,7 @@ func CreateIndex(connection *golastic.Connection) error {
 	return connection.Indexer(nil).CreateIndex("movies", string(b))
 }
 
-func SeedMovies(builder *golastic.Builder) error {
+func seedMovies(builder *golastic.Builder) error {
 	count := 0
 
 	movies := []interface{}{}

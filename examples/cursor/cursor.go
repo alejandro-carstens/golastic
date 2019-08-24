@@ -3,38 +3,18 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"os"
-	"time"
 
-	"github.com/alejandro-carstens/golastic"
 	"github.com/alejandro-carstens/golastic/examples"
 )
 
 func main() {
-	connection := golastic.NewConnection(&golastic.ConnectionContext{
-		Urls:                []string{os.Getenv("ELASTICSEARCH_URI")},
-		Password:            os.Getenv("ELASTICSEARCH_PASSWORD"),
-		Username:            os.Getenv("ELASTICSEARCH_USERNAME"),
-		HealthCheckInterval: 30,
-	})
+	var err error = nil
 
-	if err := connection.Connect(); err != nil {
+	builder, err := examples.Connect()
+
+	if err != nil {
 		log.Fatal(err)
 	}
-
-	if err := examples.CreateIndex(connection); err != nil {
-		log.Fatal(err)
-	}
-
-	time.Sleep(1 * time.Second)
-
-	builder := connection.Builder("movies")
-
-	if err := examples.SeedMovies(builder); err != nil {
-		log.Fatal(err)
-	}
-
-	time.Sleep(1 * time.Second)
 
 	builder.
 		WhereIn("rating", []interface{}{"R"}).
@@ -42,7 +22,6 @@ func main() {
 		OrderBy("release_date", true)
 
 	var cursor []interface{} = nil
-	var err error = nil
 
 	for {
 		movies := []examples.Movie{}
