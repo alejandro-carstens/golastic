@@ -175,6 +175,11 @@ func (b *Builder) Destroy() (*gabs.Container, error) {
 	return toGabsContainer(response)
 }
 
+// RawQuery return an elastic raw query
+func (b *Builder) RawQuery(query string) elastic.Query {
+	return elastic.RawStringQuery(query)
+}
+
 // Count retrieves the number of elements that match the query
 func (b *Builder) Count() (int64, error) {
 	if err := b.validateMustClauses(); err != nil {
