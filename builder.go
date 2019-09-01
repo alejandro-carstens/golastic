@@ -112,6 +112,26 @@ func (b *Builder) Aggregate() (map[string]*AggregationResponse, error) {
 	return b.processAggregations(response.Aggregations)
 }
 
+func (b *Builder) ExtendedStats() (*gabs.Container, error) {
+	searchService, err := b.build()
+
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := searchService.Do(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Aggregations == nil {
+		return nil, errors.New("No aggregations returned")
+	}
+
+	return toGabsContainer(response)
+}
+
 // Get executes the search query and retrieves the results
 func (b *Builder) Get(items interface{}) error {
 	searchService, err := b.build()

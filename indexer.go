@@ -171,6 +171,17 @@ func (i *Indexer) PutSettings(body string, indices ...string) (*gabs.Container, 
 	return parse(service.Do(context.Background()))
 }
 
+// FieldMappings returns the field mappings for the specified indices
+func (i *Indexer) FieldMappings(indices ...string) (*gabs.Container, error) {
+	service := i.client.GetFieldMapping().Index(indices...)
+
+	if i.options != nil && i.options.IgnoreUnavailable {
+		service.IgnoreUnavailable(i.options.IgnoreUnavailable)
+	}
+
+	return parse(service.Do(context.Background()))
+}
+
 // CreateRepository creates a snapshot repository
 func (i *Indexer) CreateRepository(repository string, repoType string, verify bool, settings map[string]interface{}) (*gabs.Container, error) {
 	service := i.client.SnapshotCreateRepository(repository).Type(repoType).Verify(verify).Settings(settings)
