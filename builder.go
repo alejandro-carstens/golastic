@@ -112,7 +112,8 @@ func (b *Builder) Aggregate() (map[string]*AggregationResponse, error) {
 	return b.processAggregations(response.Aggregations)
 }
 
-func (b *Builder) ExtendedStats() (*gabs.Container, error) {
+// AggregateRaw returns raw aggregation results
+func (b *Builder) AggregateRaw() (*gabs.Container, error) {
 	searchService, err := b.build()
 
 	if err != nil {
@@ -129,7 +130,7 @@ func (b *Builder) ExtendedStats() (*gabs.Container, error) {
 		return nil, errors.New("No aggregations returned")
 	}
 
-	return toGabsContainer(response)
+	return toGabsContainer(response.Aggregations)
 }
 
 // Get executes the search query and retrieves the results
