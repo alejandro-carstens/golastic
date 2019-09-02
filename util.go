@@ -64,9 +64,7 @@ func inSlice(needle string, haystack ...string) bool {
 
 func isDate(s interface{}) bool {
 	if isString(s) {
-		_, err := dateparse.ParseAny(s.(string))
-
-		if err != nil {
+		if _, err := dateparse.ParseAny(s.(string)); err != nil {
 			return false
 		}
 
