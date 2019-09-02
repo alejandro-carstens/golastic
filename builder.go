@@ -511,6 +511,10 @@ func (b *Builder) build() (*elastic.SearchService, error) {
 		query = b.processGroupBy(b.groupBy.Fields, query)
 	}
 
+	if b.stats != nil {
+		query = b.processStatsAggregations(b.stats.Fields, query)
+	}
+
 	return query, nil
 }
 
@@ -565,6 +569,18 @@ func (b *Builder) processNestedQueries(nestedQueries chan []elastic.Query) {
 	}
 
 	nestedQueries <- queries
+}
+
+func (b *Builder) processStatsAggregations(fields []string, query *elastic.SearchService) *elastic.SearchService {
+	name := fields[0]
+
+	aggr := elastic.NewExtendedStatsAggregation().Field(name)
+
+	for _, field := range sliceRemove(0, fields) {
+		aggr = aggr.SubAggregation(field, elastic.NewExtendedStatsAggregation().Field(field))
+	}
+
+	return query.Aggregation(name, aggr)
 }
 
 func (b *Builder) processGroupBy(fields []string, query *elastic.SearchService) *elastic.SearchService {

@@ -29,6 +29,7 @@ type queryBuilder struct {
 	from        *from
 	nested      map[string]*nested
 	nestedSort  *nestedSort
+	stats       *stats
 }
 
 func (qb *queryBuilder) Where(field string, operand string, value interface{}) *queryBuilder {
@@ -93,6 +94,12 @@ func (qb *queryBuilder) Limit(value int) *queryBuilder {
 
 func (qb *queryBuilder) GroupBy(fields ...string) *queryBuilder {
 	qb.groupBy = &groupBy{Fields: fields}
+
+	return qb
+}
+
+func (qb *queryBuilder) Stats(fields ...string) *queryBuilder {
+	qb.stats = &stats{Fields: fields}
 
 	return qb
 }

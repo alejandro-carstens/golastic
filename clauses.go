@@ -146,6 +146,10 @@ type nestedSort struct {
 	Order bool
 }
 
+type stats struct {
+	Fields []string
+}
+
 func (ns *nestedSort) validate() error {
 	if len(ns.Field) == 0 {
 		return errors.New("field cannot be empty")
