@@ -14,8 +14,8 @@ func (w *where) validate() error {
 	}
 
 	if !isNumeric(w.Value) {
-		if !isString(w.Value) {
-			return errors.New("The value is not numeric nor a string.")
+		if !isString(w.Value) && !isDate(w.Value) {
+			return errors.New("The value is not numeric, a string or a date.")
 		}
 
 		if w.Operand != "=" && w.Operand != "<>" {
@@ -68,8 +68,8 @@ func (f *filter) validate() error {
 	}
 
 	if !isNumeric(f.Value) {
-		if !isString(f.Value) {
-			return errors.New("The value is not numeric nor a string.")
+		if !isString(f.Value) && !isDate(f.Value) {
+			return errors.New("The value is not numeric, a string or a date.")
 		}
 
 		if f.Operand != "=" {

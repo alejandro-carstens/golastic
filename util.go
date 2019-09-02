@@ -3,6 +3,7 @@ package golastic
 import (
 	"encoding/json"
 	"math"
+	"time"
 
 	"github.com/Jeffail/gabs"
 	"github.com/araddon/dateparse"
@@ -69,6 +70,8 @@ func isDate(s interface{}) bool {
 			return false
 		}
 
+		return true
+	} else if _, valid := s.(time.Time); valid {
 		return true
 	}
 
