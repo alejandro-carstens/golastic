@@ -28,6 +28,7 @@ type IndexOptions struct {
 type Indexer struct {
 	options *IndexOptions
 	client  *elastic.Client
+	context context.Context
 }
 
 // SetOptions sets the index options for the action to be performed
@@ -37,7 +38,7 @@ func (i *Indexer) SetOptions(options *IndexOptions) {
 
 // Exists checks if a given index exists on ElasticSearch
 func (i *Indexer) Exists(name string) (bool, error) {
-	return i.client.IndexExists(name).Do(context.Background())
+	return i.client.IndexExists(name).Do(i.context)
 }
 
 // CreateIndex creates and ElasticSearch index
@@ -48,7 +49,7 @@ func (i *Indexer) CreateIndex(name string, schema string) error {
 		service.Timeout(i.options.Timeout)
 	}
 
-	createIndex, err := service.BodyString(schema).Do(context.Background())
+	createIndex, err := service.BodyString(schema).Do(i.context)
 
 	if err != nil {
 		return err
@@ -69,7 +70,7 @@ func (i *Indexer) DeleteIndex(name string) error {
 		service.Timeout(i.options.Timeout)
 	}
 
-	deleteIndex, err := service.Do(context.Background())
+	deleteIndex, err := service.Do(i.context)
 
 	if err != nil {
 		return err
@@ -89,7 +90,7 @@ func (i *Indexer) ListIndices() ([]string, error) {
 
 // ListAllIndices lists all indices on and elasticsearch cluster
 func (i *Indexer) ListAllIndices() ([]string, error) {
-	catIndicesResponse, err := i.client.CatIndices().Columns("index").Do(context.Background())
+	catIndicesResponse, err := i.client.CatIndices().Columns("index").Do(i.context)
 
 	if err != nil {
 		return nil, err
@@ -124,7 +125,7 @@ func (i *Indexer) ListAllIndices() ([]string, error) {
 
 // Settings gets the index settings for the specified indices
 func (i *Indexer) Settings(names ...string) (map[string]*gabs.Container, error) {
-	indicesSettings, err := i.client.IndexGetSettings(names...).Do(context.Background())
+	indicesSettings, err := i.client.IndexGetSettings(names...).Do(i.context)
 
 	if err != nil {
 		return nil, err
@@ -147,17 +148,17 @@ func (i *Indexer) Settings(names ...string) (map[string]*gabs.Container, error) 
 
 // GetTask retrieves the status of a given task by task id
 func (i *Indexer) GetTask(taskId string) (*gabs.Container, error) {
-	return parse(i.client.TasksGetTask().TaskId(taskId).Do(context.Background()))
+	return parse(i.client.TasksGetTask().TaskId(taskId).Do(i.context))
 }
 
 // GetClusterHealth returns the health status of the cluster
 func (i *Indexer) GetClusterHealth(indices ...string) (*gabs.Container, error) {
-	return parse(i.client.ClusterHealth().Index(indices...).Do(context.Background()))
+	return parse(i.client.ClusterHealth().Index(indices...).Do(i.context))
 }
 
 // GetIndices returns index information for the provided indices
 func (i *Indexer) GetIndices(indices ...string) (*gabs.Container, error) {
-	return parse(i.client.IndexGet(indices...).Do(context.Background()))
+	return parse(i.client.IndexGet(indices...).Do(i.context))
 }
 
 // PutSettings updates elasticsearch indices settings
@@ -168,7 +169,7 @@ func (i *Indexer) PutSettings(body string, indices ...string) (*gabs.Container, 
 		service.MasterTimeout(i.options.Timeout)
 	}
 
-	return parse(service.Do(context.Background()))
+	return parse(service.Do(i.context))
 }
 
 // FieldMappings returns the field mappings for the specified indices
@@ -179,7 +180,7 @@ func (i *Indexer) FieldMappings(indices ...string) (*gabs.Container, error) {
 		service.IgnoreUnavailable(i.options.IgnoreUnavailable)
 	}
 
-	return parse(service.Do(context.Background()))
+	return parse(service.Do(i.context))
 }
 
 // CreateRepository creates a snapshot repository
@@ -190,7 +191,7 @@ func (i *Indexer) CreateRepository(repository string, repoType string, verify bo
 		service.MasterTimeout(i.options.Timeout)
 	}
 
-	return parse(service.Do(context.Background()))
+	return parse(service.Do(i.context))
 }
 
 // DeleteRepositories deletes one or many snapshot repositories
@@ -201,7 +202,7 @@ func (i *Indexer) DeleteRepositories(repositories ...string) (*gabs.Container, e
 		service.MasterTimeout(i.options.Timeout)
 	}
 
-	return parse(service.Do(context.Background()))
+	return parse(service.Do(i.context))
 }
 
 // Snapshot takes a snapshot of one or more indices and stores it in the provided repository
@@ -248,7 +249,7 @@ func (i *Indexer) GetSnapshots(repository string, snapshot string) (*gabs.Contai
 		service.IgnoreUnavailable(i.options.IgnoreUnavailable)
 	}
 
-	return parse(service.Do(context.Background()))
+	return parse(service.Do(i.context))
 }
 
 // ListSnapshots returns a list of snapshots for the given repository
@@ -282,7 +283,7 @@ func (i *Indexer) ListSnapshots(repository string) ([]string, error) {
 
 // DeleteSnapshot deletes a snapshot for a given repository
 func (i *Indexer) DeleteSnapshot(repository string, name string) (*gabs.Container, error) {
-	return parse(i.client.SnapshotDelete(repository, name).Do(context.Background()))
+	return parse(i.client.SnapshotDelete(repository, name).Do(i.context))
 }
 
 // SnapshotRestore restores a snapshot from the specified repository
@@ -315,12 +316,12 @@ func (i *Indexer) SnapshotRestore(repository string, snapshot string) (*gabs.Con
 			IncludeGlobalState(i.options.IncludeGlobalState)
 	}
 
-	return parse(service.Do(context.Background()))
+	return parse(service.Do(i.context))
 }
 
 // Recovery checks the indices recovery status when restoring a snapshot
 func (i *Indexer) Recovery(indices ...string) (map[string]*gabs.Container, error) {
-	response, err := i.client.IndicesRecovery().Human(true).Indices(indices...).Do(context.Background())
+	response, err := i.client.IndicesRecovery().Human(true).Indices(indices...).Do(i.context)
 
 	if err != nil {
 		return nil, err
@@ -349,7 +350,7 @@ func (i *Indexer) Close(name string) (*gabs.Container, error) {
 		service.MasterTimeout(i.options.Timeout)
 	}
 
-	return parse(service.Do(context.Background()))
+	return parse(service.Do(i.context))
 }
 
 // Open opens an elasticsearch index
@@ -360,32 +361,32 @@ func (i *Indexer) Open(name string) (*gabs.Container, error) {
 		service.MasterTimeout(i.options.Timeout)
 	}
 
-	return parse(service.Do(context.Background()))
+	return parse(service.Do(i.context))
 }
 
 // IndexCat retrieves information associated to the given index
 func (i *Indexer) IndexCat(name string) (*gabs.Container, error) {
-	return parse(i.client.CatIndices().Index(name).Columns(columns...).Do(context.Background()))
+	return parse(i.client.CatIndices().Index(name).Columns(columns...).Do(i.context))
 }
 
 // AliasesCat retrives information associated to all current index aliases
 func (i *Indexer) AliasesCat() (*gabs.Container, error) {
-	return parse(i.client.CatAliases().Columns("*").Do(context.Background()))
+	return parse(i.client.CatAliases().Columns("*").Do(i.context))
 }
 
 // AddAlias adds an alias to a given elasticsearch index
 func (i *Indexer) AddAlias(indexName string, aliasName string) (*gabs.Container, error) {
-	return parse(elastic.NewAliasService(i.client).Add(indexName, aliasName).Do(context.Background()))
+	return parse(elastic.NewAliasService(i.client).Add(indexName, aliasName).Do(i.context))
 }
 
 // AddAliasByAction adds an alias by *elastic.AliasAddAction
 func (i *Indexer) AddAliasByAction(aliasAction *elastic.AliasAddAction) (*gabs.Container, error) {
-	return parse(elastic.NewAliasService(i.client).Action(aliasAction).Do(context.Background()))
+	return parse(elastic.NewAliasService(i.client).Action(aliasAction).Do(i.context))
 }
 
 // RemoveIndexFromAlias removes an index from a given alias
 func (i *Indexer) RemoveIndexFromAlias(index string, alias string) (*gabs.Container, error) {
-	return parse(elastic.NewAliasService(i.client).Remove(index, alias).Do(context.Background()))
+	return parse(elastic.NewAliasService(i.client).Remove(index, alias).Do(i.context))
 }
 
 // AliasAddAction returns an instances of *elastic.AliasAddAction
@@ -395,7 +396,7 @@ func (i *Indexer) AliasAddAction(alias string) *elastic.AliasAddAction {
 
 // IndexStats retrieves the statistics for the given indices
 func (i *Indexer) IndexStats(indices ...string) (map[string]*gabs.Container, error) {
-	indexStatsResponse, err := i.client.IndexStats(indices...).Do(context.Background())
+	indexStatsResponse, err := i.client.IndexStats(indices...).Do(i.context)
 
 	if err != nil {
 		return nil, err
@@ -444,5 +445,5 @@ func (i *Indexer) Rollover(alias, newIndex, maxAge, maxSize string, maxDocs int6
 		service.Settings(settings)
 	}
 
-	return parse(service.Do(context.Background()))
+	return parse(service.Do(i.context))
 }

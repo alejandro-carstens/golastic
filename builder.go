@@ -13,15 +13,14 @@ import (
 // and executing elasticsearch queries
 type Builder struct {
 	queryBuilder
-	index  string
-	client *elastic.Client
+	index   string
+	client  *elastic.Client
+	context context.Context
 }
 
 // Find retrieves an instance of a model for the specified Id from the corresponding elasticsearch index
 func (b *Builder) Find(id string, item interface{}) error {
-	ctx := context.Background()
-
-	response, err := b.client.Get().Index(b.index).Id(id).Do(ctx)
+	response, err := b.client.Get().Index(b.index).Id(id).Do(b.context)
 
 	if err != nil {
 		return err
@@ -99,7 +98,7 @@ func (b *Builder) Aggregate() (map[string]*AggregationResponse, error) {
 		return nil, err
 	}
 
-	response, err := searchService.Do(context.Background())
+	response, err := searchService.Do(b.context)
 
 	if err != nil {
 		return nil, err
@@ -120,7 +119,7 @@ func (b *Builder) AggregateRaw() (*gabs.Container, error) {
 		return nil, err
 	}
 
-	response, err := searchService.Do(context.Background())
+	response, err := searchService.Do(b.context)
 
 	if err != nil {
 		return nil, err
@@ -141,7 +140,7 @@ func (b *Builder) Get(items interface{}) error {
 		return err
 	}
 
-	response, err := searchService.Do(context.Background())
+	response, err := searchService.Do(b.context)
 
 	if err != nil {
 		return err
@@ -158,23 +157,32 @@ func (b *Builder) Get(items interface{}) error {
 	return json.Unmarshal([]byte(results), items)
 }
 
-// Execute executes an ubdate by query
+// Execute executes an update by query
 func (b *Builder) Execute(params map[string]interface{}) (*gabs.Container, error) {
-	query, err := b.updateByQuery()
+	query, err := b.buildExecuteQuery(params)
 
 	if err != nil {
 		return nil, err
 	}
 
-	script := ""
+	response, err := query.WaitForCompletion(true).Refresh("true").Do(b.context)
 
-	for field := range params {
-		script = script + "ctx._source." + field + " = params." + field + "; "
+	if err != nil {
+		return nil, err
 	}
 
-	query.Script(elastic.NewScript(script).Lang("painless").Params(params))
+	return toGabsContainer(response)
+}
 
-	response, err := query.Refresh("true").Do(context.Background())
+// ExecuteAsync executes an update by query asynchronously
+func (b *Builder) ExecuteAsync(scrollSize int, params map[string]interface{}) (*gabs.Container, error) {
+	query, err := b.buildExecuteQuery(params)
+
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := query.WaitForCompletion(false).DoAsync(b.context)
 
 	if err != nil {
 		return nil, err
@@ -185,9 +193,27 @@ func (b *Builder) Execute(params map[string]interface{}) (*gabs.Container, error
 
 // Destroy executes a delete by query
 func (b *Builder) Destroy() (*gabs.Container, error) {
-	query := b.client.DeleteByQuery(b.index).ProceedOnVersionConflict().Query(b.query())
+	response, err := b.client.
+		DeleteByQuery(b.index).
+		Refresh("true").
+		ProceedOnVersionConflict().
+		Query(b.query()).
+		Do(b.context)
 
-	response, err := query.Refresh("true").Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return toGabsContainer(response)
+}
+
+// DestroyAsync executes a delete by query asynchronously
+func (b *Builder) DestroyAsync() (*gabs.Container, error) {
+	response, err := b.client.
+		DeleteByQuery(b.index).
+		ProceedOnVersionConflict().
+		Query(b.query()).
+		DoAsync(b.context)
 
 	if err != nil {
 		return nil, err
@@ -207,7 +233,7 @@ func (b *Builder) Count() (int64, error) {
 		return 0, err
 	}
 
-	return b.client.Count(b.index).Query(b.query()).Pretty(true).Do(context.Background())
+	return b.client.Count(b.index).Query(b.query()).Pretty(true).Do(b.context)
 }
 
 // Cursor paginates based on searching after the last returned sortValues
@@ -232,7 +258,7 @@ func (b *Builder) Cursor(offset int, sortValues []interface{}, items interface{}
 		searchService.SearchAfter(sortValues...)
 	}
 
-	response, err := searchService.Do(context.Background())
+	response, err := searchService.Do(b.context)
 
 	if err != nil {
 		return nil, err
@@ -264,13 +290,35 @@ func (b *Builder) MinMax(field string, isDateField bool) (*MinMaxResponse, error
 		}
 	  }`
 
-	result, err := b.client.Search().Index(b.index).Source(rawQuery).Size(0).Do(context.Background())
+	result, err := b.client.Search().Index(b.index).Source(rawQuery).Size(0).Do(b.context)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return b.parseMinMaxResponse(result.Aggregations, isDateField)
+}
+
+// GetTask retrieves a task given a taskId
+func (b *Builder) GetTask(taskId string) (*gabs.Container, error) {
+	response, err := b.client.TasksGetTask().TaskId(taskId).WaitForCompletion(true).Do(b.context)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return toGabsContainer(response)
+}
+
+// CancelTask cancels a task provided a taskId
+func (b *Builder) CancelTask(taskId string) (*gabs.Container, error) {
+	response, err := b.client.TasksCancel().TaskId(taskId).Do(b.context)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return toGabsContainer(response)
 }
 
 func (b *Builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}, string, error) {
@@ -370,7 +418,7 @@ func (b *Builder) processBulkRequest(batchClient *elastic.BulkService, num int) 
 		return nil, errors.New("The number of actions does not match the number of arguments.")
 	}
 
-	response, err := batchClient.Do(context.Background())
+	response, err := batchClient.Do(b.context)
 
 	if err != nil {
 		return nil, err
@@ -456,6 +504,22 @@ func (b *Builder) processAggregationBuckets(buckets []*gabs.Container) (aggregat
 	}
 
 	return items, nil
+}
+
+func (b *Builder) buildExecuteQuery(params map[string]interface{}) (*elastic.UpdateByQueryService, error) {
+	query, err := b.updateByQuery()
+
+	if err != nil {
+		return nil, err
+	}
+
+	script := ""
+
+	for field := range params {
+		script = script + "ctx._source." + field + " = params." + field + "; "
+	}
+
+	return query.Script(elastic.NewScript(script).Lang("painless").Params(params)).ProceedOnVersionConflict(), nil
 }
 
 func (b *Builder) updateByQuery() (*elastic.UpdateByQueryService, error) {

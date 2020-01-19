@@ -1,6 +1,7 @@
 package golastic
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
@@ -17,6 +18,7 @@ type ConnectionContext struct {
 	InfoLogPrefix       string
 	Password            string
 	Username            string
+	Context             context.Context
 }
 
 // Connection represents an elasticsearch connection
@@ -50,13 +52,15 @@ func (c *Connection) Indexer(options *IndexOptions) *Indexer {
 	return &Indexer{
 		client:  c.client,
 		options: options,
+		context: c.context.Context,
 	}
 }
 
 // Builder creates a new Builder
 func (c *Connection) Builder(index string) *Builder {
 	return &Builder{
-		client: c.client,
-		index:  index,
+		client:  c.client,
+		index:   index,
+		context: c.context.Context,
 	}
 }

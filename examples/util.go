@@ -1,6 +1,7 @@
 package examples
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"math"
@@ -19,6 +20,7 @@ func Connect() (*golastic.Builder, error) {
 		Password:            os.Getenv("ELASTICSEARCH_PASSWORD"),
 		Username:            os.Getenv("ELASTICSEARCH_USERNAME"),
 		HealthCheckInterval: 30,
+		Context:             context.Background(),
 	})
 
 	if err := connection.Connect(); err != nil {

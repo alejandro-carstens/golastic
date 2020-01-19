@@ -1,6 +1,7 @@
 package golastic
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -47,6 +48,7 @@ func bootConnection() (*Connection, error) {
 			Password:            os.Getenv("ELASTICSEARCH_PASSWORD"),
 			Username:            os.Getenv("ELASTICSEARCH_USERNAME"),
 			HealthCheckInterval: 30,
+			Context:             context.Background(),
 		},
 	)
 
