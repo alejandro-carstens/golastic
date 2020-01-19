@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	var err error = nil
+	var err error
 
 	builder, err := examples.Connect()
 
@@ -21,7 +21,7 @@ func main() {
 		WhereNested("cast.director", "=", "James Cameron").
 		OrderBy("release_date", true)
 
-	var cursor []interface{} = nil
+	var cursor []interface{}
 
 	for {
 		movies := []examples.Movie{}

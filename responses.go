@@ -5,6 +5,7 @@ import "github.com/Jeffail/gabs"
 // AggregationResponses represents a map for *AggregationResponse
 type AggregationResponses map[string]*AggregationResponse
 
+// ToGabsContainer converts a response to a *gabs.Container instance
 func (ar *AggregationResponses) ToGabsContainer() (*gabs.Container, error) {
 	return toGabsContainer(ar)
 }
@@ -17,6 +18,7 @@ type MinMaxResponse struct {
 	Max interface{} `json:"max"`
 }
 
+// ToGabsContainer converts a response to a *gabs.Container instance
 func (mmr *MinMaxResponse) ToGabsContainer() (*gabs.Container, error) {
 	return toGabsContainer(mmr)
 }
@@ -28,6 +30,7 @@ type AggregationResponse struct {
 	Buckets                 []*AggregationBucket `json:"buckets"`
 }
 
+// ToGabsContainer converts a response to a *gabs.Container instance
 func (ab *AggregationResponse) ToGabsContainer() (*gabs.Container, error) {
 	return toGabsContainer(ab)
 }

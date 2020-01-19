@@ -14,6 +14,7 @@ import (
 	"github.com/rs/xid"
 )
 
+// Connect creates a *golastic.Builder
 func Connect() (*golastic.Builder, error) {
 	connection := golastic.NewConnection(&golastic.ConnectionContext{
 		Urls:                []string{os.Getenv("ELASTICSEARCH_URI")},
@@ -122,6 +123,7 @@ func seedMovies(builder *golastic.Builder) error {
 	return err
 }
 
+// Movie is the struct representation of a film/movie
 type Movie struct {
 	Id          string `json:"id"`
 	Title       string `json:"title"`
