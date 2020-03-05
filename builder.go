@@ -300,8 +300,8 @@ func (b *Builder) MinMax(field string, isDateField bool) (*MinMaxResponse, error
 }
 
 // GetTask retrieves a task given a taskId
-func (b *Builder) GetTask(taskId string) (*gabs.Container, error) {
-	response, err := b.client.TasksGetTask().TaskId(taskId).WaitForCompletion(true).Do(b.context)
+func (b *Builder) GetTask(taskId string, waitForCompletion bool) (*gabs.Container, error) {
+	response, err := b.client.TasksGetTask().TaskId(taskId).WaitForCompletion(waitForCompletion).Do(b.context)
 
 	if err != nil {
 		return nil, err
