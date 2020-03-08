@@ -319,6 +319,44 @@ func TestGetMatches(t *testing.T) {
 	}
 }
 
+func TestGetMatchPhrases(t *testing.T) {
+	connection, err := initConnection()
+
+	if err != nil {
+		t.Error("Expected no error got ", err)
+	}
+
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(seedModels(10)...); err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	notInIds := []interface{}{2}
+
+	builder.MatchPhraseNotIn("id", notInIds).
+		MatchPhraseIn("subject_id", notInIds).
+		MatchPhrase("description", "<>", "Description 9").
+		MatchPhrase("description", "=", "Description 10")
+
+	var response []Example
+
+	if err := builder.Get(&response); err != nil {
+		t.Error("Expected no error got:", err)
+	}
+
+	assert.Equal(t, 1, len(response))
+	assert.Equal(t, "10", response[0].Id)
+	assert.Equal(t, 2, response[0].SubjectId)
+	assert.Equal(t, "Description 10", response[0].Description)
+
+	if err := tearDownBuilder(connection); err != nil {
+		t.Error("Expected no error got:", err)
+	}
+}
+
 func TestGetLimitAndSort(t *testing.T) {
 	connection, err := initConnection()
 

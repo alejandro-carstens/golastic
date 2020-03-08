@@ -587,6 +587,8 @@ func (b *Builder) query() *elastic.BoolQuery {
 	notWheres := make(chan []elastic.Query)
 	matches := make(chan []elastic.Query)
 	notMatches := make(chan []elastic.Query)
+	matchPhrases := make(chan []elastic.Query)
+	notMatchPhrases := make(chan []elastic.Query)
 	filters := make(chan []elastic.Query)
 	nestedQueries := make(chan []elastic.Query)
 
@@ -608,15 +610,35 @@ func (b *Builder) query() *elastic.BoolQuery {
 		notMatches <- notTerms
 	}()
 
+	go func() {
+		terms, notTerms := processMatchPhrases(b.matchPhrases, b.matchPhraseIns, b.matchPhraseNotIns)
+
+		matchPhrases <- terms
+		notMatchPhrases <- notTerms
+	}()
+
 	go b.processNestedQueries(nestedQueries)
 
-	return elastic.NewBoolQuery().
+	query := elastic.NewBoolQuery().
 		Must(<-wheres...).
 		MustNot(<-notWheres...).
 		Must(<-matches...).
 		MustNot(<-notMatches...).
 		Filter(<-filters...).
+		Must(<-matchPhrases...).
+		MustNot(<-notMatchPhrases...).
 		Must(<-nestedQueries...)
+
+	close(wheres)
+	close(notWheres)
+	close(matches)
+	close(notMatches)
+	close(matchPhrases)
+	close(notMatchPhrases)
+	close(filters)
+	close(nestedQueries)
+
+	return query
 }
 
 func (b *Builder) processNestedQueries(nestedQueries chan []elastic.Query) {
@@ -626,8 +648,16 @@ func (b *Builder) processNestedQueries(nestedQueries chan []elastic.Query) {
 		filters := processFilters(nested.filters, nested.filterIns)
 		terms, notTerms := processWheres(nested.wheres, nested.whereIns, nested.whereNotIns)
 		matches, notMatches := processMatches(nested.matches, nil, nil)
+		matchPhrases, notMatchPhrases := processMatchPhrases(nested.matchPhrases, nil, nil)
 
-		query := elastic.NewBoolQuery().Must(terms...).MustNot(notTerms...).Filter(filters...).Must(matches...).MustNot(notMatches...)
+		query := elastic.NewBoolQuery().
+			Must(terms...).
+			MustNot(notTerms...).
+			Filter(filters...).
+			Must(matches...).
+			MustNot(notMatches...).
+			Must(matchPhrases...).
+			MustNot(notMatchPhrases...)
 
 		queries = append(queries, elastic.NewNestedQuery(path, query))
 	}
@@ -804,6 +834,36 @@ func processMatches(matches []*match, matchIns []*matchIn, matchNotIns []*matchN
 
 		if match.Operand == "<>" {
 			notTerms = append(notTerms, elastic.NewMatchQuery(match.Field, match.Value))
+		}
+	}
+
+	return terms, notTerms
+}
+
+func processMatchPhrases(
+	matchPhrases []*matchPhrase,
+	matchPhraseIns []*matchPhraseIn,
+	matchPhraseNotIns []*matchPhraseNotIn,
+) (terms []elastic.Query, notTerms []elastic.Query) {
+	for _, matchPhraseIn := range matchPhraseIns {
+		for _, value := range matchPhraseIn.Values {
+			terms = append(terms, elastic.NewMatchPhraseQuery(matchPhraseIn.Field, value))
+		}
+	}
+
+	for _, matchPhraseNotIn := range matchPhraseNotIns {
+		for _, value := range matchPhraseNotIn.Values {
+			notTerms = append(notTerms, elastic.NewMatchPhraseQuery(matchPhraseNotIn.Field, value))
+		}
+	}
+
+	for _, matchPhrase := range matchPhrases {
+		if matchPhrase.Operand == "=" {
+			terms = append(terms, elastic.NewMatchPhraseQuery(matchPhrase.Field, matchPhrase.Value))
+		}
+
+		if matchPhrase.Operand == "<>" {
+			notTerms = append(notTerms, elastic.NewMatchPhraseQuery(matchPhrase.Field, matchPhrase.Value))
 		}
 	}
 

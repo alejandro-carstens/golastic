@@ -123,6 +123,43 @@ type matchNotIn struct {
 	Values []interface{}
 }
 
+type matchPhrase struct {
+	where
+	Field   string
+	Operand string
+	Value   interface{}
+}
+
+func (mp *matchPhrase) validate() error {
+	if !inSlice(mp.Operand, "=", "<>") {
+		return errors.New("The operand is invalid.")
+	}
+
+	if !isNumeric(mp.Value) {
+		if !isString(mp.Value) {
+			return errors.New("The value is not numeric nor a string.")
+		}
+
+		if mp.Operand != "=" && mp.Operand != "<>" {
+			return errors.New("Value (" + mp.Value.(string) + ") and operand (" + mp.Operand + ") are incompatible")
+		}
+	}
+
+	return nil
+}
+
+type matchPhraseIn struct {
+	matchIn
+	Field  string
+	Values []interface{}
+}
+
+type matchPhraseNotIn struct {
+	matchNotIn
+	Field  string
+	Values []interface{}
+}
+
 type sort struct {
 	Field string
 	Order bool

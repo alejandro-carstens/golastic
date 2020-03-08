@@ -130,6 +130,37 @@ func TestMatches(t *testing.T) {
 	}
 }
 
+func TestMatchPhrases(t *testing.T) {
+	builder := new(queryBuilder)
+	builder.MatchPhrase("description", "=", "value1").
+		MatchPhrase("description", "<>", "value2")
+
+	if got := builder.validateMatchPhraseClauses(); got != nil {
+		t.Error("Expected no errors but got ", got)
+	}
+
+	builder = new(queryBuilder)
+	builder.MatchPhrase("subject_id", "!=", 0)
+
+	if got := builder.validateMatchPhraseClauses(); got == nil {
+		t.Error("Expected errors but got ", got)
+	}
+
+	builder = new(queryBuilder)
+	builder.MatchPhrase("subject_id", "<", 1)
+
+	if got := builder.validateMatchPhraseClauses(); got == nil {
+		t.Error("Expected errors but got ", got)
+	}
+
+	builder = new(queryBuilder)
+	builder.MatchPhrase("subject_id", ">", 1)
+
+	if got := builder.validateMatchPhraseClauses(); got == nil {
+		t.Error("Expected errors but got ", got)
+	}
+}
+
 func TestWhereIn(t *testing.T) {
 	var descriptions = []interface{}{"value1", "value2", "value3"}
 	var subjectIds = []interface{}{1, 2, 4}
