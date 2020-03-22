@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"strconv"
 	"testing"
 	"time"
@@ -755,8 +754,6 @@ func TestParallelScroll(t *testing.T) {
 	items := []*gabs.Container{}
 
 	for item := range channel {
-		log.Println(item.String())
-
 		items = append(items, item)
 	}
 
