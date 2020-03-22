@@ -183,6 +183,21 @@ func (i *Indexer) FieldMappings(indices ...string) (*gabs.Container, error) {
 	return parse(service.Do(i.context))
 }
 
+// Mappings returns the mappings for the specified indices
+func (i *Indexer) Mappings(indices ...string) (*gabs.Container, error) {
+	service := i.client.GetMapping().Index(indices...)
+
+	if i.options != nil && i.options.IgnoreUnavailable {
+		service.IgnoreUnavailable(i.options.IgnoreUnavailable)
+	}
+
+	return parse(service.Do(i.context))
+}
+
+func (i *Indexer) Aliases(indices ...string) (*gabs.Container, error) {
+	return parse(i.client.Aliases().Index(indices...).Do(i.context))
+}
+
 // CreateRepository creates a snapshot repository
 func (i *Indexer) CreateRepository(repository string, repoType string, verify bool, settings map[string]interface{}) (*gabs.Container, error) {
 	service := i.client.SnapshotCreateRepository(repository).Type(repoType).Verify(verify).Settings(settings)

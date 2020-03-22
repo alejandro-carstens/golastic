@@ -3,6 +3,7 @@ package golastic
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"strconv"
 	"testing"
 	"time"
@@ -594,6 +595,61 @@ func TestFromGet(t *testing.T) {
 	assert.Equal(t, response[2].Id, "3")
 	assert.Equal(t, response[3].Id, "4")
 	assert.Equal(t, response[4].Id, "5")
+
+	if err := tearDownBuilder(connection); err != nil {
+		t.Error("Expected no error got:", err)
+	}
+}
+
+func TestScroll(t *testing.T) {
+	connection, err := initConnection()
+
+	if err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	builder := connection.Builder("example")
+
+	if _, err = builder.Insert(seedModels(15)...); err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	notInDescriptions := []interface{}{"Description 2", "Description 4"}
+
+	builder.Where("id", "<>", 3).
+		Where("subject_id", "<", 2).
+		WhereNotIn("description", notInDescriptions).
+		Where("description", "<>", "Description 5")
+
+	builder.InitScroller(2, "5m")
+
+	counter := 0
+
+	for {
+		result, err := builder.Scroll()
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			t.Error("Expected no errors but got:", err)
+		}
+
+		r, err := result.S("hits", "hits").Children()
+
+		if err != nil {
+			t.Error("Expected no errors but got:", err)
+		}
+
+		assert.Equal(t, 2, len(r))
+
+		counter++
+	}
+
+	assert.Equal(t, 3, counter)
 
 	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)

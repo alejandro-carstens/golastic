@@ -13,9 +13,10 @@ import (
 // and executing elasticsearch queries
 type Builder struct {
 	queryBuilder
-	index   string
-	client  *elastic.Client
-	context context.Context
+	index    string
+	client   *elastic.Client
+	context  context.Context
+	scroller *elastic.ScrollService
 }
 
 // Find retrieves an instance of a model for the specified Id from the corresponding elasticsearch index
@@ -321,6 +322,39 @@ func (b *Builder) CancelTask(taskId string) (*gabs.Container, error) {
 	return toGabsContainer(response)
 }
 
+// InitScroller initializes the scroller
+func (b *Builder) InitScroller(size int, scroll string) *Builder {
+	b.scroller = b.client.Scroll(b.index).Query(b.query()).Size(size).Scroll(scroll)
+
+	return b
+}
+
+// ScrollId sets the scroll id for the current scroller
+func (b *Builder) ScrollId(scrollId string) error {
+	if b.scroller == nil {
+		return errors.New("scroller is empty")
+	}
+
+	b.scroller.ScrollId(scrollId)
+
+	return nil
+}
+
+// Scroll executes the scrolling
+func (b *Builder) Scroll() (*gabs.Container, error) {
+	if b.scroller == nil {
+		return nil, errors.New("scroller is empty")
+	}
+
+	results, err := b.scroller.Do(b.context)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return toGabsContainer(results)
+}
+
 func (b *Builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}, string, error) {
 	sources := []*json.RawMessage{}
 	sortResponse := []interface{}{}
@@ -355,6 +389,8 @@ func (b *Builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}
 	for i := 0; i < chunkCount; i++ {
 		sources = append(sources, sourceMaps[i]...)
 	}
+
+	close(channels)
 
 	results, err := toJson(sources)
 
@@ -396,6 +432,8 @@ func (b *Builder) processGetResults(hits []*elastic.SearchHit) []*json.RawMessag
 	for i := 0; i < chunkCount; i++ {
 		sources = append(sources, sourceMaps[i]...)
 	}
+
+	close(channels)
 
 	return sources
 }
