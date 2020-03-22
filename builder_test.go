@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 	"testing"
 	"time"
@@ -650,6 +651,116 @@ func TestScroll(t *testing.T) {
 	}
 
 	assert.Equal(t, 3, counter)
+
+	if err := tearDownBuilder(connection); err != nil {
+		t.Error("Expected no error got:", err)
+	}
+}
+
+func TestParallelScroll(t *testing.T) {
+	connection, err := initConnection()
+
+	if err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	b1 := connection.Builder("example")
+
+	if _, err = b1.Insert(seedModels(15)...); err != nil {
+		t.Error("Expected no error on insert:", err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	notInDescriptions := []interface{}{"Description 2", "Description 4"}
+
+	b1.Where("id", "<>", 3).
+		Where("subject_id", "<", 2).
+		WhereNotIn("description", notInDescriptions).
+		Where("description", "<>", "Description 5")
+
+	b1.InitScroller(2, "5m").ScrollSlice(0, 2)
+
+	b2 := connection.Builder("example")
+	b2.Where("id", "<>", 3).
+		Where("subject_id", "<", 2).
+		WhereNotIn("description", notInDescriptions).
+		Where("description", "<>", "Description 5")
+
+	b2.InitScroller(1, "5m").ScrollSlice(1, 2)
+
+	channel := make(chan *gabs.Container)
+	count := 0
+
+	go func() {
+		for {
+			result, err := b1.Scroll()
+
+			if err == io.EOF {
+				count++
+
+				if count == 2 {
+					close(channel)
+				}
+
+				break
+			}
+
+			if err != nil {
+				t.Error("Expected no errors but got:", err)
+			}
+
+			r, err := result.S("hits", "hits").Children()
+
+			if err != nil {
+				t.Error("Expected no errors but got:", err)
+			}
+
+			for _, item := range r {
+				channel <- item
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			result, err := b2.Scroll()
+
+			if err == io.EOF {
+				count++
+
+				if count == 2 {
+					close(channel)
+				}
+
+				break
+			}
+
+			if err != nil {
+				t.Error("Expected no errors but got:", err)
+			}
+
+			r, err := result.S("hits", "hits").Children()
+
+			if err != nil {
+				t.Error("Expected no errors but got:", err)
+			}
+
+			for _, item := range r {
+				channel <- item
+			}
+		}
+	}()
+
+	items := []*gabs.Container{}
+
+	for item := range channel {
+		log.Println(item.String())
+
+		items = append(items, item)
+	}
+
+	assert.Equal(t, 6, len(items))
 
 	if err := tearDownBuilder(connection); err != nil {
 		t.Error("Expected no error got:", err)

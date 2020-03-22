@@ -340,6 +340,16 @@ func (b *Builder) ScrollId(scrollId string) error {
 	return nil
 }
 
+func (b *Builder) ScrollSlice(id, max int) error {
+	if b.scroller == nil {
+		return errors.New("scroller is empty")
+	}
+
+	b.scroller.Slice(elastic.NewSliceQuery().Id(id).Max(max))
+
+	return nil
+}
+
 // Scroll executes the scrolling
 func (b *Builder) Scroll() (*gabs.Container, error) {
 	if b.scroller == nil {
@@ -353,6 +363,14 @@ func (b *Builder) Scroll() (*gabs.Container, error) {
 	}
 
 	return toGabsContainer(results)
+}
+
+func (b *Builder) ClearScroll() error {
+	if b.scroller == nil {
+		return errors.New("scroller is empty")
+	}
+
+	return b.scroller.Clear(b.context)
 }
 
 func (b *Builder) processCursorResults(hits []*elastic.SearchHit) ([]interface{}, string, error) {
@@ -779,7 +797,11 @@ func (b *Builder) parseMinMaxResponse(aggs elastic.Aggregations, isDateField boo
 	return response, nil
 }
 
-func processWheres(wheres []*where, whereIns []*whereIn, whereNotIns []*whereNotIn) (terms []elastic.Query, notTerms []elastic.Query) {
+func processWheres(
+	wheres []*where,
+	whereIns []*whereIn,
+	whereNotIns []*whereNotIn,
+) (terms []elastic.Query, notTerms []elastic.Query) {
 	for _, whereIn := range whereIns {
 		terms = append(terms, elastic.NewTermsQuery(whereIn.Field, whereIn.Values...))
 	}
@@ -852,7 +874,11 @@ func processFilters(filters []*filter, filterIns []*filterIn) (terms []elastic.Q
 	return terms
 }
 
-func processMatches(matches []*match, matchIns []*matchIn, matchNotIns []*matchNotIn) (terms []elastic.Query, notTerms []elastic.Query) {
+func processMatches(
+	matches []*match,
+	matchIns []*matchIn,
+	matchNotIns []*matchNotIn,
+) (terms []elastic.Query, notTerms []elastic.Query) {
 	for _, matchIn := range matchIns {
 		for _, value := range matchIn.Values {
 			terms = append(terms, elastic.NewMatchQuery(matchIn.Field, value))
