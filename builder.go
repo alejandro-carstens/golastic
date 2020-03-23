@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 
 	"github.com/Jeffail/gabs"
 	elastic "github.com/alejandro-carstens/elasticfork"
@@ -330,11 +331,22 @@ func (b *Builder) InitScroller(size int, scroll string) *Builder {
 }
 
 func (b *Builder) InitSlicedScroller(id, max, size int, scroll string) *Builder {
+	query := b.query()
+	sliceQuery := elastic.NewSliceQuery().Id(id).Max(max)
+
 	b.scroller = b.client.Scroll(b.index).
-		Slice(elastic.NewSliceQuery().Id(id).Max(max)).
-		Query(b.query()).
+		Slice(sliceQuery).
+		Query(query).
 		Size(size).
 		Scroll(scroll)
+
+	source, _ := query.Source()
+	JSON, _ := toGabsContainer(source)
+	sliceSource, _ := sliceQuery.Source()
+	sliceJSON, _ := toGabsContainer(sliceSource)
+
+	log.Println(JSON.String())
+	log.Println(sliceJSON.String())
 
 	return b
 }
