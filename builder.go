@@ -324,30 +324,19 @@ func (b *Builder) CancelTask(taskId string) (*gabs.Container, error) {
 
 // InitScroller initializes the scroller
 func (b *Builder) InitScroller(size int, scroll string) *Builder {
-	b.scroller = b.client.Scroll(b.index).Size(size).Scroll(scroll)
+	b.scroller = b.client.Scroll(b.index).Query(b.query()).Size(size).Scroll(scroll)
 
 	return b
 }
 
-// ScrollId sets the scroll id for the current scroller
-func (b *Builder) ScrollId(scrollId string) error {
-	if b.scroller == nil {
-		return errors.New("scroller is empty")
-	}
+func (b *Builder) InitSlicedScroller(id, max, size int, scroll string) *Builder {
+	b.scroller = b.client.Scroll(b.index).
+		Slice(elastic.NewSliceQuery().Id(id).Max(max)).
+		Query(b.query()).
+		Size(size).
+		Scroll(scroll)
 
-	b.scroller.ScrollId(scrollId)
-
-	return nil
-}
-
-func (b *Builder) ScrollSlice(id, max int) error {
-	if b.scroller == nil {
-		return errors.New("scroller is empty")
-	}
-
-	b.scroller.Slice(elastic.NewSliceQuery().Id(id).Max(max))
-
-	return nil
+	return b
 }
 
 // Scroll executes the scrolling
@@ -356,7 +345,7 @@ func (b *Builder) Scroll() (*gabs.Container, error) {
 		return nil, errors.New("scroller is empty")
 	}
 
-	results, err := b.scroller.Query(b.query()).Do(b.context)
+	results, err := b.scroller.Do(b.context)
 
 	if err != nil {
 		return nil, err

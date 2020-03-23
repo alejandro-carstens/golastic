@@ -678,7 +678,7 @@ func TestParallelScroll(t *testing.T) {
 		WhereNotIn("description", notInDescriptions).
 		Where("description", "<>", "Description 5")
 
-	b1.InitScroller(2, "5m").ScrollSlice(0, 2)
+	b1.InitSlicedScroller(0, 2, 2, "5m")
 
 	b2 := connection.Builder("example")
 	b2.Where("id", "<>", 3).
@@ -686,7 +686,7 @@ func TestParallelScroll(t *testing.T) {
 		WhereNotIn("description", notInDescriptions).
 		Where("description", "<>", "Description 5")
 
-	b2.InitScroller(1, "5m").ScrollSlice(1, 2)
+	b2.InitSlicedScroller(1, 2, 1, "5m")
 
 	channel := make(chan *gabs.Container)
 	count := 0
