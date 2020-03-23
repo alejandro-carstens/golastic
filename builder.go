@@ -324,7 +324,7 @@ func (b *Builder) CancelTask(taskId string) (*gabs.Container, error) {
 
 // InitScroller initializes the scroller
 func (b *Builder) InitScroller(size int, scroll string) *Builder {
-	b.scroller = b.client.Scroll(b.index).Query(b.query()).Size(size).Scroll(scroll)
+	b.scroller = b.client.Scroll(b.index).Size(size).Scroll(scroll)
 
 	return b
 }
@@ -356,7 +356,7 @@ func (b *Builder) Scroll() (*gabs.Container, error) {
 		return nil, errors.New("scroller is empty")
 	}
 
-	results, err := b.scroller.Do(b.context)
+	results, err := b.scroller.Query(b.query()).Do(b.context)
 
 	if err != nil {
 		return nil, err
@@ -365,6 +365,7 @@ func (b *Builder) Scroll() (*gabs.Container, error) {
 	return toGabsContainer(results)
 }
 
+// ClearScroll cancel's the current scroll operation
 func (b *Builder) ClearScroll() error {
 	if b.scroller == nil {
 		return errors.New("scroller is empty")
