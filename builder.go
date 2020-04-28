@@ -107,8 +107,14 @@ func (b *Builder) Update(items ...interface{}) (*gabs.Container, error) {
 			return nil, err
 		}
 
+		id, valid := doc.S("id").Data().(string)
+
+		if !valid {
+			return nil, errors.New("id not specified in document.")
+		}
+
 		batchClient = batchClient.Add(
-			elastic.NewBulkUpdateRequest().Index(b.index).Id(doc.S("id").Data().(string)).Doc(item),
+			elastic.NewBulkUpdateRequest().Index(b.index).Id(id).Doc(item),
 		)
 	}
 
