@@ -45,14 +45,8 @@ func (b *Builder) InsertWithOverwrittenId(items map[string]interface{}) (*gabs.C
 	bulkClient := b.client.Bulk()
 
 	for id, item := range items {
-		doc, err := toGabsContainer(item)
-
-		if err != nil {
-			return nil, err
-		}
-
 		bulkClient = bulkClient.Add(
-			elastic.NewBulkIndexRequest().Index(b.index).Id(id).OpType("create").Doc(doc),
+			elastic.NewBulkIndexRequest().Index(b.index).Id(id).OpType("create").Doc(item),
 		)
 	}
 
@@ -82,7 +76,7 @@ func (b *Builder) Insert(items ...interface{}) (*gabs.Container, error) {
 		}
 
 		bulkClient = bulkClient.Add(
-			elastic.NewBulkIndexRequest().Index(b.index).Id(id).OpType("create").Doc(doc),
+			elastic.NewBulkIndexRequest().Index(b.index).Id(id).OpType("create").Doc(item),
 		)
 	}
 
