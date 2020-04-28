@@ -194,8 +194,14 @@ func (i *Indexer) Mappings(indices ...string) (*gabs.Container, error) {
 	return parse(service.Do(i.context))
 }
 
+// Aliases retrieves the aliases for a given set of indices
 func (i *Indexer) Aliases(indices ...string) (*gabs.Container, error) {
 	return parse(i.client.Aliases().Index(indices...).Do(i.context))
+}
+
+// Templates returns the templates associated to the specified index templates
+func (i *Indexer) Templates(indexTemplates ...string) (*gabs.Container, error) {
+	return parse(i.client.IndexGetTemplate(indexTemplates...).Do(i.context))
 }
 
 // CreateRepository creates a snapshot repository

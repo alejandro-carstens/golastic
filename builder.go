@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 
 	"github.com/Jeffail/gabs"
 	elastic "github.com/alejandro-carstens/elasticfork"
@@ -41,6 +40,30 @@ func (b *Builder) Find(id string, item interface{}) error {
 	return json.Unmarshal(data, item)
 }
 
+// InsertWithOverwrittenId allows to overwrite the of the given document on creation
+func (b *Builder) InsertWithOverwrittenId(items map[string]interface{}) (*gabs.Container, error) {
+	bulkClient := b.client.Bulk()
+
+	for id, item := range items {
+		doc, err := toGabsContainer(item)
+
+		if err != nil {
+			return nil, err
+		}
+
+		bulkClient = bulkClient.Add(
+			elastic.NewBulkIndexRequest().Index(b.index).Id(id).OpType("create").Doc(doc),
+		)
+	}
+
+	return b.processBulkRequest(bulkClient, len(items))
+}
+
+// Client returns an instance of *elastic.Client
+func (b *Builder) Client() *elastic.Client {
+	return b.client
+}
+
 // Insert inserts one or multiple documents into the corresponding elasticsearch index
 func (b *Builder) Insert(items ...interface{}) (*gabs.Container, error) {
 	bulkClient := b.client.Bulk()
@@ -52,8 +75,14 @@ func (b *Builder) Insert(items ...interface{}) (*gabs.Container, error) {
 			return nil, err
 		}
 
+		id, valid := doc.S("id").Data().(string)
+
+		if !valid {
+			return nil, errors.New("id not specified in document.")
+		}
+
 		bulkClient = bulkClient.Add(
-			elastic.NewBulkIndexRequest().Index(b.index).Id(doc.S("id").Data().(string)).OpType("create").Doc(item),
+			elastic.NewBulkIndexRequest().Index(b.index).Id(id).OpType("create").Doc(doc),
 		)
 	}
 
@@ -330,6 +359,7 @@ func (b *Builder) InitScroller(size int, scroll string) *Builder {
 	return b
 }
 
+// InitSlicedScroller boots a sliced scroller
 func (b *Builder) InitSlicedScroller(id, max, size int, scroll string) *Builder {
 	query := b.query()
 	sliceQuery := elastic.NewSliceQuery().Id(id).Max(max)
@@ -339,14 +369,6 @@ func (b *Builder) InitSlicedScroller(id, max, size int, scroll string) *Builder 
 		Query(query).
 		Size(size).
 		Scroll(scroll)
-
-	source, _ := query.Source()
-	JSON, _ := toGabsContainer(source)
-	sliceSource, _ := sliceQuery.Source()
-	sliceJSON, _ := toGabsContainer(sliceSource)
-
-	log.Println(JSON.String())
-	log.Println(sliceJSON.String())
 
 	return b
 }
